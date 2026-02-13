@@ -1,0 +1,142 @@
+==============================
+HireMe API Request/Response Mapping
+==============================
+
+Format:
+[HTTP METHOD] /endpoint
+- Auth: (if required, e.g. Bearer token, AdminGuard)
+- Request Body: (fields and types)
+- Response: (structure and example)
+
+----------------------------------
+
+ADMIN CONTROLLER (/admin)
+-------------------------
+1. POST /admin/auth/login
+- Request Body:
+  {
+    username: string,
+    password: string
+  }
+- Response:
+  {
+    message: string,
+    token: string
+  }
+
+2. GET /admin/partner-list
+- Auth: Bearer token (AdminGuard)
+- Response: Array of partners
+  [
+    { id: number, CompanyName: string },
+    ...
+  ]
+
+----------------------------------
+
+USER CONTROLLER (/user)
+-----------------------
+1. GET /user/details
+- Auth: Bearer token in Authorization header
+- Response:
+  {
+    message: string,
+    data: {
+      Username: string,
+      Email?: string,
+      id?: number,
+      AccountType: string
+    }
+  }
+
+----------------------------------
+
+PARTNER CONTROLLER (/partner)
+-----------------------------
+1. GET /partner/details/:id
+- Params: id (number)
+- Response:
+  {
+    id: number,
+    CompanyName: string,
+    Contact: string,
+    Email: string,
+    Address: string,
+    ESI: string,
+    PF: string,
+    PAN: string,
+    PAN_No: string,
+    MOA: string,
+    CIN: string,
+    GST: string,
+    TradeLicense: string,
+    MSMC: string,
+    CreatedAt: string
+  }
+
+2. POST /partner/auth/login
+- Request Body:
+  {
+    companyCode: number,
+    username: string,
+    password: string
+  }
+- Response:
+  {
+    token: string,
+    message: string
+  }
+
+----------------------------------
+
+REQUEST CONTROLLER (/request)
+-----------------------------
+1. GET /request/get-requests
+- Auth: Bearer token (AdminGuard)
+- Response: Array of requests
+  [
+    { Status: string, id: number, CompanyName: string },
+    ...
+  ]
+
+2. GET /request/get-request-details/:id
+- Auth: Bearer token (AdminGuard)
+- Params: id (number)
+- Response:
+  {
+    ...PartnerRequest fields (see schema)
+  }
+
+3. POST /request/send-request
+- Request Body: multipart/form-data
+  Fields:
+    CompanyName: string
+    Contact: string
+    Email: string
+    Address: string
+    PAN_No: string
+    CIN: string
+    ESI: file (PDF)
+    PF: file (PDF)
+    PAN: file (PDF)
+    MOA: file (PDF)
+    GST: file (PDF)
+    TradeLicense: file (PDF)
+    MSMC: file (PDF)
+- Response:
+  {
+    status: string,
+    message: string
+  }
+
+----------------------------------
+
+NOTES:
+- All endpoints requiring authentication expect a Bearer token in the Authorization header.
+- Validation errors return 400 with error details.
+- File upload endpoints expect multipart/form-data.
+- For full field details, see DTOs in the backend source.
+
+==============================
+End of HireMe API Request/Response Mapping
+============================== 

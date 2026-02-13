@@ -1,0 +1,103 @@
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" version="27.0.5">
+  <diagram name="Page-1" id="JYWhv4LzLx1CIgkccFwH">
+    <mxGraphModel dx="1246" dy="676" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-1" target="HzshiFEmVW_1FWn0o6ds-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-1" value="Client" style="ellipse;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="377" y="161" width="110" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-2" target="HzshiFEmVW_1FWn0o6ds-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-2" target="HzshiFEmVW_1FWn0o6ds-10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-2" target="HzshiFEmVW_1FWn0o6ds-14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-2" value="API Gateway" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="372" y="241" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-4" value="Authentication Service" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="147" y="331" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-7" value="User DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="182" y="421" width="50" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-9" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-7" target="HzshiFEmVW_1FWn0o6ds-4">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="437" y="511" as="sourcePoint" />
+            <mxPoint x="487" y="461" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;exitX=1.008;exitY=0.4;exitDx=0;exitDy=0;exitPerimeter=0;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-10" target="HzshiFEmVW_1FWn0o6ds-18">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-10" value="Partner Management Service" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="372" y="331" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-12" value="Partner DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="407" y="421" width="50" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-13" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-12" target="HzshiFEmVW_1FWn0o6ds-10">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="217" y="441" as="sourcePoint" />
+            <mxPoint x="217" y="401" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-14" target="HzshiFEmVW_1FWn0o6ds-18">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="677" y="401" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="767" y="361" />
+              <mxPoint x="767" y="521" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-14" value="Employee&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;Management Service&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="587" y="331" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-16" value="Employee&lt;div&gt;DB&lt;/div&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
+          <mxGeometry x="622" y="421" width="50" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-17" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;exitPerimeter=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-16" target="HzshiFEmVW_1FWn0o6ds-14">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="397" y="441" as="sourcePoint" />
+            <mxPoint x="397" y="401" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-18" value="Payment Gateway" style="ellipse;shape=umlEntity;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+          <mxGeometry x="477" y="481" width="80" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-21" value="&lt;b&gt;&lt;font style=&quot;font-size: 22px;&quot;&gt;Architecture of HireMe&lt;/font&gt;&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="305" y="116" width="260" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-22" value="cache storage" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;" vertex="1" parent="1">
+          <mxGeometry x="20" y="320" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-24" value="cache storage" style="shape=cube;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;darkOpacity=0.05;darkOpacity2=0.1;" vertex="1" parent="1">
+          <mxGeometry x="287" y="409" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-25" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;entryX=0.496;entryY=-0.011;entryDx=0;entryDy=0;entryPerimeter=0;" edge="1" parent="1" target="HzshiFEmVW_1FWn0o6ds-24">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="372" y="360" as="sourcePoint" />
+            <mxPoint x="457" y="490" as="targetPoint" />
+            <Array as="points">
+              <mxPoint x="327" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="HzshiFEmVW_1FWn0o6ds-27" value="" style="endArrow=classic;startArrow=classic;html=1;rounded=0;exitX=0;exitY=0;exitDx=80;exitDy=40;exitPerimeter=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="HzshiFEmVW_1FWn0o6ds-22" target="HzshiFEmVW_1FWn0o6ds-4">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="217" y="431" as="sourcePoint" />
+            <mxPoint x="217" y="401" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

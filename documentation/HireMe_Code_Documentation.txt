@@ -1,0 +1,355 @@
+
+==============================
+HireMe Project - Code Documentation (Expanded)
+==============================
+
+Table of Contents
+-----------------
+1. Overview
+2. Architecture
+3. Technology Choices & Rationale
+4. Database Schema
+5. Backend (NestJS)
+   - Structure
+   - Key Modules & Services
+   - Authentication & Guards
+   - API Endpoints (with code snippets)
+   - Error Handling & Validation
+   - Developer Onboarding
+6. Frontend (React)
+   - Structure
+   - Routing
+   - Context & State Management
+   - Key Components (with code snippets)
+   - UI/UX Principles
+   - Developer Onboarding
+7. File Upload & Management
+8. Example Workflows
+9. Security & Best Practices
+10. Extending the Project
+
+
+1. Overview
+------------
+HireMe is a full-stack employee management and partner onboarding platform. It enables companies to register as partners, manage their employees, and allows admins to oversee the onboarding process. The system is designed for scalability, security, and ease of use, with a modern, responsive UI and robust backend.
+
+
+2. Architecture
+----------------
+- **Backend**: Built with NestJS (a progressive Node.js framework) using TypeScript for type safety and maintainability. Data is managed with PostgreSQL and Prisma ORM for robust schema management and migrations.
+- **Frontend**: Developed in React (TypeScript) for a component-driven, maintainable UI. Tailwind CSS is used for rapid, consistent styling. Vite is chosen for fast development builds.
+- **Authentication**: JWT-based, with custom guards for role-based access control (admin, partner, employee, guest).
+- **File Uploads**: Multer (backend) for secure file storage; React file inputs and previews (frontend) for user experience.
+- **API Communication**: RESTful endpoints, with JSON payloads and file uploads via multipart/form-data.
+
+
+3. Technology Choices & Rationale
+----------------------------------
+- **NestJS**: Chosen for its modularity, dependency injection, and scalability. It enforces good architectural patterns and is well-suited for enterprise-grade APIs.
+- **Prisma ORM**: Provides type-safe database access, easy migrations, and clear schema definitions.
+- **React**: Enables a dynamic, interactive UI with reusable components and strong community support.
+- **Tailwind CSS**: Allows for rapid prototyping and consistent design without writing custom CSS for every component.
+- **Vite**: Offers fast hot-reloading and build times, improving developer productivity.
+- **JWT**: Industry-standard for stateless authentication, easily integrated with frontend and backend.
+
+
+4. Database Schema (Prisma)
+---------------------------
+The database is designed to capture all relevant entities and their relationships. Here is a partial schema:
+```
+model Admin {
+  id        Int      @id @default(autoincrement())
+  Username  String
+  Email     String   @unique
+  Password  String
+  CreatedAt DateTime @default(now())
+}
+
+model Partner {
+  id           Int      @id
+  CompanyName  String
+  Contact      String
+  Email        String
+  Address      String
+  ESI          String
+  PF           String
+  PAN          String
+  PAN_No       String
+  MOA          String
+  CIN          String
+  GST          String
+  TradeLicense String
+  MSMC         String
+  CreatedAt    DateTime @default(now())
+  PartnerAccount PartnerAccount[]
+}
+
+model Employee {
+  id        Int      @id @default(autoincrement())
+  Name      String
+  DOB       String
+  Email     String   @unique
+  Mobile    String   @unique
+  Address   String
+  Pic       String
+  AadhaarNo String   @unique
+  Aadhaar   String
+  PanNo     String   @unique
+  Pan       String
+  Voter     String
+  Qualification String
+  Institution String
+  YearOfPassing String
+  Percentage Float
+  Marksheet String
+  AccountHolderName String
+  AccountNumber String @unique
+  IFSCCode String
+  BankName String
+  Branch String
+  AccountType String
+  JoiningDate String
+  Post String
+  PostCategory String
+  Amount Float
+  PaymentFrequency String
+  CreatedAt DateTime @default(now())
+  UpdatedAt DateTime @default(now())
+  ManagerId Int
+  Manager   PartnerAccount @relation(fields: [ManagerId], references: [id], onDelete: Cascade)
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+```
+
+**Design Notes:**
+- All sensitive fields (passwords, tokens) are stored securely (hashed, never in plaintext).
+- Relations are enforced at the database level for data integrity.
+- Timestamps are automatically managed for auditing.
+
+
+5. Backend (NestJS)
+-------------------
+
+**Structure:**
+```
+backend/src/
+  app.module.ts
+  user/
+    admin/
+    partner/
+    ...
+  request/
+  guards/
+  utils/
+```
+
+**Key Modules:**
+- `UserModule`: Handles user, admin, and partner logic, including authentication and user management.
+- `RequestModule`: Handles partner onboarding requests, file uploads, and status management.
+
+**Authentication & Guards:**
+- JWT tokens are issued on login and required for protected endpoints.
+- Guards (`AdminGuard`, `CompanyGuard`, `UserGuard`) enforce role-based access.
+
+**API Endpoint Example: Admin Login**
+```ts
+// backend/src/user/admin/admin.controller.ts
+@Post('auth/login')
+async login(@Body(new ValidationPipe()) loginCred: AdminLoginCredDto): Promise<Object> {
+  const { token, encryptedData } = await this.adminService.login(loginCred.username, loginCred.password);
+  return {
+    message: 'Login successful',
+    token,
+    encryptedData
+  };
+}
+```
+
+**API Endpoint Example: Approve Partner Request**
+```ts
+// backend/src/request/request.controller.ts
+@Put('approve-request/:id')
+@UseGuards(AdminGuard)
+async approveRequest(@Param('id') id: string): Promise<Object> {
+  await this.requestService.updatePartnerRequestStatus(parseInt(id), 'APPROVED');
+  return { status: 'success', message: 'Request approved successfully' };
+}
+```
+
+**File Upload Handling**
+```ts
+// backend/src/request/request.controller.ts
+@Post('send-request')
+@UseInterceptors(FileFieldsInterceptor([
+  { name: 'ESI', maxCount: 1 },
+  { name: 'PF', maxCount: 1 },
+  { name: 'PAN', maxCount: 1 },
+  { name: 'MOA', maxCount: 1 },
+  { name: 'GST', maxCount: 1 },
+  { name: 'TradeLicense', maxCount: 1 },
+  { name: 'MSMC', maxCount: 1 }
+], { storage }))
+async sendPartnerRequest(@Body() requestData: any): Promise<Object> {
+  validatePartnerRequest(requestData);
+  const message = await this.requestService.sendPartnerRequest({ ...requestData, Status: RequestStatus.PENDING });
+  return { status: 'success', message };
+}
+```
+
+**Error Handling & Validation**
+- Uses NestJS `ValidationPipe` for DTO validation.
+- Custom exception filters for JWT errors and file cleanup on validation failure.
+- Example:
+```ts
+@Catch(JsonWebTokenError)
+class JsonWebTokenErrorFilter implements ExceptionFilter {
+  catch(exception: JsonWebTokenError, host: ArgumentsHost) {
+    const ctx = host.switchToHttp();
+    const response = ctx.getResponse();
+    response.status(401).json({ message: 'Invalid token', error: 'Unauthorized' });
+  }
+}
+```
+
+**Developer Onboarding (Backend):**
+- Install dependencies: `npm install`
+- Set up `.env.local` with database credentials
+- Run migrations: `npx prisma migrate deploy`
+- Start dev server: `npm run start:dev`
+
+
+6. Frontend (React)
+-------------------
+
+**Structure:**
+```
+website/src/
+  App.tsx
+  pages/
+  components/
+  context/
+```
+
+**Routing Example:**
+```tsx
+// website/src/App.tsx
+<Routes>
+  <Route path="/" element={<Home />} />
+  <Route path="/be-a-partner" element={<BecomePartner />} />
+  <Route element={<RequestContextLayout />}>
+    <Route path="/partner-requests" element={<PartnerRequests />} />
+    <Route path="/partner-requests/:id" element={<RequestDetails />} />
+  </Route>
+  <Route element={<PartnerContextLayout />}>
+    <Route path="/partners" element={<AllPartners />} />
+    <Route path="/partner/details/:id" element={<PartnerDetails />} />
+    <Route path="/manage-account" element={<ProfileDashboard />} />
+  </Route>
+  <Route path="/employees" element={<AllEmployees />} />
+  <Route path="/employees/employee/:id" element={<Employee />} />
+  <Route path="/add-employee" element={<AddEmployee />} />
+  <Route path="/admin/login" element={<AdminLogin />} />
+</Routes>
+```
+
+**Context Example:**
+```tsx
+// website/src/context/UserContext.tsx
+export const UserContext = createContext<UserContextType | null>(null)
+...
+<UserContext.Provider value={{ userState, setUserState, updateUserState }}>
+  {children}
+</UserContext.Provider>
+```
+
+**Component Example: Navbar**
+```tsx
+// website/src/components/Navbar.tsx
+const { userState, updateUserState } = useContext(UserContext)!
+...
+<Link to="/be-a-partner">Become a Partner</Link>
+{userState.Company === null && userState.position === "admin" && (
+  <Link to="/partner-requests">Partner Requests</Link>
+)}
+```
+
+**File Upload Example (Become Partner):**
+```tsx
+// website/src/pages/BecomePartner.tsx
+<input type="file" ref={panCardRef} accept="application/pdf" style={{ display: 'none' }} onChange={e => handleFileInputChange(e, "PAN")} />
+<button type="button" onClick={() => panCardRef.current?.click()}>Upload PAN Card</button>
+```
+
+**UI/UX Principles:**
+- Responsive design for all devices
+- Clear feedback on actions (success/error toasts)
+- Accessible forms and navigation
+- Consistent color scheme and branding
+
+**Developer Onboarding (Frontend):**
+- Install dependencies: `npm install`
+- Set up `.env` with API URL
+- Start dev server: `npm run dev`
+
+
+7. File Upload & Management
+---------------------------
+- Backend uses Multer for file storage in `/uploads`.
+- Uploaded files are referenced in the database and can be previewed/downloaded by authorized users.
+- Frontend provides file preview and removal before submission, improving user experience and reducing errors.
+- Example: Partner registration requires uploading multiple PDF documents (PAN, ESI, PF, etc.).
+
+
+8. Example Workflows
+---------------------
+
+**Partner Registration:**
+1. Guest navigates to the "Become a Partner" page and fills out the form, uploading required documents.
+2. The frontend validates input and submits a multipart/form-data request to the backend.
+3. Backend validates the request, stores files, and creates a `PartnerRequest` with status `PENDING`.
+4. Admin logs in, reviews pending requests, and approves or rejects them.
+5. On approval, a `Partner` and associated `PartnerAccount` are created; the company is notified.
+
+**Employee Management:**
+1. Partner admin logs in and navigates to "Add Employee".
+2. Fills out a multi-step form (personal, documents, education, bank, job).
+3. Files are uploaded and validated.
+4. Employee is added to the database and can be managed/viewed by the partner.
+
+**Authentication Flow:**
+- On login, the backend issues a JWT token and encrypted metadata.
+- The frontend stores the token in localStorage and includes it in headers for protected API calls.
+- Guards on the backend validate the token and user role before granting access.
+
+**Error Handling Example:**
+- If a file upload fails validation, the backend cleans up any partially uploaded files and returns a clear error message.
+- The frontend displays error toasts and allows the user to retry.
+
+
+9. Security & Best Practices
+----------------------------
+- All sensitive endpoints are protected by role-based guards.
+- JWT tokens are required for all protected routes; tokens are validated and expired tokens are rejected.
+- Uploaded files are validated for type and size, and stored outside the web root.
+- Passwords are hashed using bcryptjs before storage.
+- Input validation is enforced both client and server side to prevent injection attacks.
+- Error messages are user-friendly but do not leak sensitive information.
+- CORS is configured to allow only trusted origins.
+
+
+10. Extending the Project
+-------------------------
+- **Adding New Roles**: Create new guards and update the Prisma schema as needed.
+- **New Features**: Add new modules/components in the respective backend/frontend folders, following the existing patterns.
+- **API Versioning**: Use NestJS module versioning for backward compatibility.
+- **Testing**: Add unit and e2e tests using Jest (backend) and React Testing Library (frontend).
+
+
+==============================
+End of HireMe Code Documentation (Expanded)
+============================== 

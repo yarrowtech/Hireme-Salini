@@ -1,0 +1,495 @@
+title HireMe Sequence Diagram
+
+actor Admin
+actor Company
+actor Guest
+rparticipant Web App
+rparticipant Server
+database DB
+entity Mail Server
+entity Payment Gateway
+
+
+# guest events
+note over Guest,DB: Guest Events
+Guest->Web App: opens the web application
+activate Guest
+activate Web App
+Guest<--Web App: Sends the home page
+deactivate Web App
+deactivate Guest
+Guest<-Web App: Login form
+opt user login
+Guest->Web App: Sends login credentials
+activate Guest
+activate Web App
+Web App->Server: sends login data after validation
+activate Web App
+activate Server
+Server->Server: sanitizes the data
+activate Server
+alt sanitization failed
+Server-->Web App: sends error response
+deactivate Server
+else sanitization successful
+Server->DB: queries with the credentials
+activate Server
+activate DB
+Server<--DB: sends query result
+deactivate DB
+deactivate Server
+Web App<--Server: sends user data response
+deactivate Server
+deactivate Web App
+end
+Guest<--Web App: shows the response
+deactivate Guest
+deactivate Web App
+end
+opt company user registration
+Guest->Web App: clicks Register Now
+activate Guest
+activate Web App
+Guest<--Web App: sends registration form
+Guest->Web App: sends registration data
+Web App->Server: sends registration data after validation
+activate Web App
+activate Server
+alt sanitization failed
+Server->Server: sanitizes the data
+activate Server
+Web App<--Server: sends error response
+deactivate Server
+else sanitization successful
+Server->DB: queries db to check for duplicate entry
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate DB
+deactivate Server
+end
+alt duplicate entry
+Web App<--Server: sends error response
+else not duplicate
+Server->Server: stores registration details temporarily
+activate Server
+Server->Mail Server: sends the verification email
+activate Mail Server
+Web App<--Server: sends appropriate response
+deactivate Server
+deactivate Web App
+end
+Guest<--Web App: shows the response
+deactivate Guest
+deactivate Web App
+Company<--Mail Server: verification email sent
+deactivate Mail Server
+deactivate Server
+Company->Server: verification completed
+activate Company
+activate Server
+Server->Server: validates the request
+activate Server
+alt validation successful
+Server->Server: stores the registration details temporarily
+activate Server
+Company<--Server:sends appropriate response
+deactivate Server
+deactivate Server
+else validation failed
+Company<--Server: sends error response
+deactivate Company
+deactivate Server
+end
+end
+
+opt forgot password
+Guest->Web App: clicks Forgot Password
+activate Guest
+activate Web App
+Guest<--Web App: sends forgot password form
+Guest->Web App: send the email address
+Web App->Server: sends the form data after validation
+activate Web App
+activate Server
+Server->Server: sanitizes data
+activate Server
+alt sanitization failed
+Web App<--Server: sends error response
+deactivate Server
+else sanitization successful
+Server->DB: mathches the email id
+activate Server
+activate DB
+Server<--DB: sends query result
+deactivate DB
+deactivate Server
+alt no match
+Web App<--Server: sends error response
+else match found
+Server->Mail Server: sends password change mail
+activate Mail Server
+Company<--Mail Server: sends the mail
+activate Company
+deactivate Mail Server
+Web App<--Server:sends appropriate response
+deactivate Server
+deactivate Web App
+end
+end
+Guest<--Web App: sends response
+deactivate Guest
+deactivate Web App
+Company->Server: acknowledges the request
+activate Company
+activate Server
+Company<--Server: sends the password change form
+deactivate Company
+Company->Server: sends new password
+activate Company
+activate Server
+Server->Server: validates the data
+activate Server
+alt validation failed
+Company<--Server: sends error response
+deactivate Server
+else validation successful
+Server->DB: stores new password
+activate DB
+activate Server
+Server<--DB: sends query result
+deactivate Server
+deactivate DB
+Company<--Server: sends appropriate response
+deactivate Server
+deactivate Company
+end
+end
+deactivate Company
+deactivate Server
+opt partner request
+Guest->Web App: clicks Become a Partner button
+activate Guest
+activate Web App
+Guest<--Web App: sends partner registration form
+Guest->Web App: sends form data
+Web App->Server: validates form data and sends
+activate Server
+activate Web App
+Server->Server: sanitizes data
+activate Server
+alt sanitization failed
+Web App<--Server: sends error response
+deactivate Server
+else sanitization successful
+Server->DB: queries db to check for duplicate entry
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate DB
+deactivate Server
+alt duplicate exists
+Web App<--Server: sends error response
+else doesn't exist
+Server->DB: stores partner details
+activate Server
+activate DB
+Server<--DB: sends query results
+deactivate DB
+deactivate Server
+Web App<--Server: sends appropriate response
+end
+deactivate Server
+deactivate Web App
+end
+Guest<--Web App: shows response
+deactivate Web App
+deactivate Guest
+end
+
+# company events
+note over Company,DB: Company Events 
+Company->Web App: opens the web application
+activate Company
+activate Web App
+Company<--Web App: Sends the home page
+deactivate Web App
+deactivate Company
+par list all employees
+Company->Web App: request employee list
+activate Company
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->DB: queries the employee list
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate Server
+deactivate DB
+Web App<--Server: sends the appropriate response
+deactivate Web App
+deactivate Server
+end
+Company<--Web App: shows the response
+deactivate Web App
+deactivate Company
+
+thread show employee details
+Company->Web App: show employee details
+activate Company
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->DB: queries employee data
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate Server
+deactivate DB
+Web App<--Server: sends the appropriate response
+deactivate Web App
+deactivate Server
+end
+Company<--Web App: shows the response
+deactivate Web App
+deactivate Company
+
+thread add new employee
+Company->Web App: sends new employee data
+activate Company
+activate Web App
+Web App->Server: validates and sends data
+activate Web App
+activate Server
+Server->Server: sanitizes data
+activate Server
+alt sanitization failed
+Web App<--Server: sends error response
+deactivate Server
+else sanitization successfull
+Server->DB: stores employee details
+activate Server
+activate DB
+Server<--DB: sends query result
+deactivate DB
+deactivate Server
+Web App<--Server: sends appropriate response
+deactivate Server
+deactivate Web App
+end
+Company<--Web App: shows the response
+deactivate Web App
+deactivate Company
+
+thread subscription plan
+Company->Web App: requests status of plan
+activate Company
+activate Web App
+Company<--Web App: shows the status
+Company->Web App: purchase plan
+Web App->Server: sends the purchase request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->Payment Gateway: starts payment processing
+activate Server
+activate Payment Gateway
+Server<--Payment Gateway: sends payment status
+deactivate Payment Gateway
+deactivate Server
+Web App<--Server: sends appropriate response
+deactivate Server
+deactivate Web App
+end
+Company<--Web App: shows the response
+deactivate Web App
+deactivate Company
+end
+
+# admin events
+note over Admin,DB: Admin Events 
+Admin->Web App: opens the web application
+activate Admin
+activate Web App
+Admin<--Web App: Sends the home page
+deactivate Web App
+deactivate Admin
+par list all partner requests
+Admin->Web App: requests partner request list
+activate Admin
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->DB: queries the partner request list
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate Server
+deactivate DB
+Web App<--Server: sends the appropriate response
+deactivate Web App
+deactivate Server
+end
+Admin<--Web App: shows the response
+deactivate Web App
+deactivate Admin
+opt request approve
+Admin->Web App: approves request
+activate Admin
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->DB: stores company details from temp storage
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate Server
+deactivate DB
+Web App<--Server: sends the appropriate response
+deactivate Web App
+deactivate Server
+end
+Admin<--Web App: shows the response
+deactivate Web App
+deactivate Admin
+end
+opt reject request
+Admin->Web App: rejects request
+activate Admin
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->Server: deletes company details from temp storage
+activate Server
+Web App<--Server: sends the appropriate response
+deactivate Server
+deactivate Web App
+deactivate Server
+end
+Admin<--Web App: shows the response
+deactivate Web App
+deactivate Admin
+
+end
+thread list all companies
+Admin->Web App: requests company list
+activate Admin
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->DB: queries the partner request list
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate Server
+deactivate DB
+Web App<--Server: sends the appropriate response
+deactivate Web App
+deactivate Server
+end
+Admin<--Web App: shows the response
+deactivate Web App
+deactivate Admin
+
+thread list all employees
+Admin->Web App: request employee list
+activate Admin
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->DB: queries the employee list
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate Server
+deactivate DB
+Web App<--Server: sends the appropriate response
+deactivate Web App
+deactivate Server
+end
+Admin<--Web App: shows the response
+deactivate Web App
+deactivate Admin
+
+thread show employee details
+Admin->Web App: show employee details
+activate Admin
+activate Web App
+Web App->Server: sends the request with auth token
+activate Web App
+activate Server
+Server->Server: validates auth token
+activate Server
+alt wrong auth
+Web App<--Server: sends error response
+deactivate Server
+else valid auth
+Server->DB: queries employee data
+activate Server
+activate DB
+Server<--DB: sends the query result
+deactivate Server
+deactivate DB
+Web App<--Server: sends the appropriate response
+deactivate Web App
+deactivate Server
+end
+Admin<--Web App: shows the response
+deactivate Web App
+deactivate Admin
+end

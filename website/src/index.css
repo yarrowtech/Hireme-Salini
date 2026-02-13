@@ -1,0 +1,91 @@
+@import "tailwindcss";
+
+
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background:#1c398e;
+  border-radius: 13px;
+}
+
+/* Custom scrollbar for span containers */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 4px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: #1c398e;
+  border-radius: 4px;
+}
+
+/* For Firefox */
+.overflow-x-auto {
+  scrollbar-width: thin;
+  scrollbar-color: #1c398e transparent;
+}
+
+/*utility classes*/
+.active-employee-sidebar-item {
+  @apply bg-white text-black;
+}
+
+.calendar-day-name {
+  @apply self-center border-2 font-bold text-sm w-20 h-10 flex justify-center items-center rounded-lg text-blue-900 text-center
+}
+.calendar-day {
+  @apply self-center border-2 text-center font-bold text-sm w-20 h-10 flex justify-center items-center rounded-lg
+}
+
+/* Modern animations and effects */
+@keyframes float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(180deg); }
+}
+
+@keyframes float-delayed {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-15px) rotate(-180deg); }
+}
+
+@keyframes gradient-x {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes tilt {
+  0%, 50%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(1deg); }
+  75% { transform: rotate(-1deg); }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+.animate-float-delayed {
+  animation: float-delayed 8s ease-in-out infinite;
+  animation-delay: 2s;
+}
+
+.animate-gradient-x {
+  animation: gradient-x 3s ease infinite;
+  background-size: 400% 400%;
+}
+
+.animate-tilt {
+  animation: tilt 10s infinite linear;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
