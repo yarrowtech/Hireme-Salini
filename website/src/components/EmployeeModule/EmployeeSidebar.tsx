@@ -1,97 +1,81 @@
-
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import {
-  FaHandshake,
   FaTimes,
   FaTachometerAlt,
-  FaChartLine,
-  FaUserTie,
-  FaUsers,
-  FaKey,
-  FaFileAlt,
+  FaCalendarCheck,
   FaSignOutAlt,
+  FaUserTie,
+  FaUserCircle,
 } from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
 
-type companyTab = "dashboard" | "hr" | "analytics" | "salary" | "service" | "subscription";
+export type EmployeeTab = "dashboard" | "attendance" | "profile";
 
 const cn = (...a: Array<string | false | undefined | null>) =>
   a.filter(Boolean).join(" ");
 
-function getCompanyName(): string {
-  const direct = localStorage.getItem("companyName");
-  if (direct && direct.trim()) return direct.trim();
+const getEmployeeLoginId = () => localStorage.getItem("EmployeeLoginId") || "";
 
-  try {
-    const companyRaw = localStorage.getItem("company");
-    if (companyRaw) {
-      const p = JSON.parse(companyRaw);
-      const name =
-        p?.companyName ||
-        p?.company?.name ||
-        p?.organizationName ||
-        p?.orgName ||
-        p?.company_name;
-      if (typeof name === "string" && name.trim()) return name.trim();
-    }
-  } catch {}
+const generateEmployeeName = (loginId = "") => {
+  if (!loginId) return "Employee";
+  const name = loginId.replace(/\./g, " ");
+  return name.charAt(0).toUpperCase() + name.slice(1);
+};
 
-  return "Company";
-}
-
-export default function companySidebar({
+export default function EmployeeSidebar({
   active,
   setActive,
   sidebarOpen,
   setSidebarOpen,
-  panelTitle = "Company Panel",
-  companyName,
-  companyStatus,
+  panelTitle = "Employee Panel",
 }: {
-  active: companyTab;
-  setActive: (t: companyTab) => void;
+  active: EmployeeTab;
+  setActive: (t: EmployeeTab) => void;
   sidebarOpen: boolean;
   setSidebarOpen: React.Dispatch<React.SetStateAction<boolean>>;
   panelTitle?: string;
-  companyName?: string;
-  companyStatus?: string;
 }) {
   const navigate = useNavigate();
 
-  const [localCompanyName, setLocalCompanyName] = React.useState(getCompanyName());
+  // ✅ same logic like your Waiter sidebar: Name generated from LoginId
+  const [employeeLoginId, setEmployeeLoginId] = React.useState(getEmployeeLoginId);
+  const [employeeName, setEmployeeName] = React.useState(() =>
+    generateEmployeeName(getEmployeeLoginId())
+  );
 
   React.useEffect(() => {
-    const refresh = () => setLocalCompanyName(getCompanyName());
-    refresh();
-    window.addEventListener("storage", refresh);
-    window.addEventListener("focus", refresh);
+    const syncProfile = () => {
+      const id = getEmployeeLoginId();
+      setEmployeeLoginId(id);
+      setEmployeeName(generateEmployeeName(id));
+    };
+
+    syncProfile();
+    window.addEventListener("storage", syncProfile);
+    window.addEventListener("focus", syncProfile); // ✅ same-tab refresh fix
+
     return () => {
-      window.removeEventListener("storage", refresh);
-      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", syncProfile);
+      window.removeEventListener("focus", syncProfile);
     };
   }, []);
 
-  const resolvedCompanyName = companyName || localCompanyName;
-  const resolvedCompanyStatus = companyStatus || "Verified";
-
-  const items: Array<{ key: companyTab; label: string; icon: React.ReactNode }> =
+  const items: Array<{ key: EmployeeTab; label: string; icon: React.ReactNode }> =
     [
       { key: "dashboard", label: "Dashboard", icon: <FaTachometerAlt /> },
-      { key: "hr", label: "HR Management", icon: <FaUserTie /> },
-      { key: "analytics", label: "Analytics", icon: <FaChartLine /> },
-      { key: "salary", label: "Salary & Payments", icon: <FaUsers /> },
-      { key: "service", label: "Service Access", icon: <FaKey /> },
-      { key: "subscription", label: "Subscription Management", icon: <FaFileAlt /> },
+      { key: "attendance", label: "Attendance", icon: <FaCalendarCheck /> },
+      { key: "profile", label: "Profile", icon: <FaUserCircle /> },
     ];
 
-  const navigateTab = (key: companyTab) => {
+  const navigateTab = (key: EmployeeTab) => {
     setActive(key);
     setSidebarOpen(false);
   };
 
   const handleLogout = () => {
-    localStorage.clear();
-    navigate("/login");
+    
+    localStorage.removeItem("EmployeeLoginId");
+    navigate("/"); // change to "/employee-login" if you have that route
   };
 
   return (
@@ -121,11 +105,11 @@ export default function companySidebar({
           <div className="p-4 flex items-center justify-between border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white">
-                <FaHandshake />
+                <FaUserTie />
               </div>
               <div className="leading-tight">
                 <div className="text-white font-bold">{panelTitle}</div>
-                <div className="text-xs text-slate-400">Company Dashboard</div>
+                <div className="text-xs text-slate-400">Employee Workspace</div>
               </div>
             </div>
 
@@ -140,8 +124,12 @@ export default function companySidebar({
 
           <SidebarNav items={items} active={active} onSelect={navigateTab} />
 
-          {/* ✅ New style footer */}
-          <SidebarFooterPill companyName={resolvedCompanyName} onLogout={handleLogout} />
+          {/* Footer pill */}
+          <SidebarFooterPill
+            employeeName={employeeName}
+            employeeLoginId={employeeLoginId}
+            onLogout={handleLogout}
+          />
         </div>
       </div>
 
@@ -152,26 +140,29 @@ export default function companySidebar({
           <div className="p-5 border-b border-white/10">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white">
-                <FaHandshake />
+                <FaUserTie />
               </div>
               <div className="leading-tight">
                 <div className="text-white font-extrabold text-lg">{panelTitle}</div>
-                <div className="text-xs text-slate-400">Company Dashboard</div>
+                <div className="text-xs text-slate-400">Employee Workspace</div>
               </div>
             </div>
 
             <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-3">
               <div className="text-xs text-slate-400">Status</div>
-              <div className="text-sm text-white font-semibold">{resolvedCompanyStatus} company</div>
-              <div className="text-xs text-slate-400 mt-1">Access: Full</div>
+              <div className="text-sm text-white font-semibold">Active Employee</div>
+              <div className="text-xs text-slate-400 mt-1">Access: Attendance</div>
             </div>
           </div>
 
           <SidebarNav items={items} active={active} onSelect={navigateTab} />
 
           <div className="mt-auto">
-            {/* ✅ New style footer */}
-            <SidebarFooterPill companyName={resolvedCompanyName} onLogout={handleLogout} />
+            <SidebarFooterPill
+              employeeName={employeeName}
+              employeeLoginId={employeeLoginId}
+              onLogout={handleLogout}
+            />
           </div>
         </div>
       </aside>
@@ -184,9 +175,9 @@ function SidebarNav({
   active,
   onSelect,
 }: {
-  items: { key: companyTab; label: string; icon: React.ReactNode }[];
-  active: companyTab;
-  onSelect: (key: companyTab) => void;
+  items: { key: EmployeeTab; label: string; icon: React.ReactNode }[];
+  active: EmployeeTab;
+  onSelect: (key: EmployeeTab) => void;
 }) {
   return (
     <nav className="p-4">
@@ -218,20 +209,26 @@ function SidebarNav({
   );
 }
 
-/** ✅ Another style: bottom "pill" with company name + logout icon */
 function SidebarFooterPill({
-  companyName,
+  employeeName,
+  employeeLoginId,
   onLogout,
 }: {
-  companyName: string;
+  employeeName: string;
+  employeeLoginId: string;
   onLogout: () => void;
 }) {
   return (
     <div className="p-4 border-t border-white/10">
       <div className="flex items-center gap-3 rounded-full bg-gradient-to-r from-white/10 to-white/5 border border-white/10 px-4 py-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] text-slate-400">Company</div>
-          <div className="text-sm font-semibold text-white truncate">{companyName}</div>
+          <div className="text-[11px] text-slate-400">Profile</div>
+          <div className="text-sm font-semibold text-white truncate">
+            {employeeName}
+          </div>
+          <div className="text-xs text-slate-400 truncate">
+            ID: {employeeLoginId || "—"}
+          </div>
         </div>
 
         <button
@@ -246,8 +243,3 @@ function SidebarFooterPill({
     </div>
   );
 }
-
-
-
-
-

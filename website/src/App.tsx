@@ -1,5 +1,4 @@
-
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Routes, Route, useLocation ,  Navigate} from "react-router-dom";
 import { ToastContainer, Bounce } from "react-toastify";
 import UserContextProvider from "./context/UserContext";
 import RequestContextLayout from "./context/RequestsContext";
@@ -13,25 +12,29 @@ import RequestDetails from "./pages/RequestDetails";
 import AllPartners from "./pages/AllPartners";
 import PartnerDetails from "./pages/PartnerDetails";
 import ProfileDashboard from "./pages/ProfileDashboard";
-import Employee from "./pages/Employee";
+import Employee from "./components/EmployeeModule/Employee";
 import AdminLogin from "./pages/AdminLogin";
 
-//protected admin route 
 import AdminProtectedRoute from "./routes/AdminProtectedRoute";
+import CompanyLayout from "./components/PartnerModule/company";
+import CompanyDashboard from "./components/PartnerModule/companyDashboard";
+import CompanyAnalytics from "./components/PartnerModule/companyAnalytics";
+import CompanySalaryPayment from "./components/PartnerModule/companySalaryPayment";
+import CompanyServiceAccess from "./components/PartnerModule/companyServiceAccess";
+import CompanySubscription from "./components/PartnerModule/companySubscription";
 
-/* Partner Dashboard */
-import Company from "./components/PartnerModule/company";
 import Admin from "./components/AdminModule/Admin";
+
 function App() {
   const location = useLocation();
 
+  // ✅ Better: hide layout for whole sections
   const hideLayout =
     location.pathname === "/" ||
     location.pathname === "/be-a-partner" ||
     location.pathname.startsWith("/company") ||
-    location.pathname.startsWith("/hr") ||
+    location.pathname.startsWith("/employee") ||
     location.pathname.startsWith("/admin");
-
 
   return (
     <UserContextProvider>
@@ -60,12 +63,23 @@ function App() {
           <Route path="/manage-account" element={<ProfileDashboard />} />
         </Route>
 
-        <Route path="/employees/employee/:id" element={<Employee />} />
-        <Route path="/company/*" element={<Company />} />
-        
-<Route element={<AdminProtectedRoute />}>
-  <Route path="/admin/*" element={<Admin />} />
-</Route>     
+      <Route path="/company" element={<CompanyLayout />}>
+    <Route index element={<Navigate to="dashboard" replace />} />
+    <Route path="dashboard" element={<CompanyDashboard />} />
+    <Route path="hr" element={<CompanyDashboard />} />
+    <Route path="analytics" element={<CompanyAnalytics />} />
+    <Route path="salary" element={<CompanySalaryPayment />} />
+    <Route path="service" element={<CompanyServiceAccess />} />
+    <Route path="subscription" element={<CompanySubscription />} />
+  </Route>
+
+        {/* ✅ Employee module */}
+        <Route path="/employee/*" element={<Employee />} />
+
+        {/* ✅ Admin protected */}
+        <Route element={<AdminProtectedRoute />}>
+          <Route path="/admin/*" element={<Admin />} />
+        </Route>
       </Routes>
 
       {!hideLayout && <Footer />}

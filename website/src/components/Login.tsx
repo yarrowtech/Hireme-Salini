@@ -229,7 +229,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
   }, [role]);
 
   const goBySelectedRole = () => {
-    if (role === "COMPANY") navigate("/company/*");
+    if (role === "COMPANY") navigate("/company/dashboard");
     else if (role === "HR") navigate("/hr/dashboard");
     else navigate("/employee/dashboard");
   };
@@ -240,6 +240,16 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
       try {
         const token = localStorage.getItem("authToken");
         if (!token) return;
+
+        const storedRole = localStorage.getItem("authRole") || "";
+        const storedCompanyId = localStorage.getItem("companyId") || localStorage.getItem("activeCompanyId") || "";
+
+        if (storedRole === "COMPANY" && storedCompanyId) {
+          toast.info("You are already logged in");
+          setShowLogin(false);
+          navigate("/company/dashboard");
+          return;
+        }
 
         const me = await authApi.me(); // { user }
         if (me?.user?.role) {
@@ -298,6 +308,13 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
         }
 
         localStorage.setItem("authToken", data.token);
+        localStorage.setItem("authRole", "COMPANY");
+        if (data?.user) {
+          localStorage.setItem("authUser", JSON.stringify(data.user));
+          localStorage.setItem("companyId", String(data.user.companyId || data.user.id || ""));
+          localStorage.setItem("activeCompanyId", String(data.user.companyId || data.user.id || ""));
+          if (data.user.companyName) localStorage.setItem("companyName", data.user.companyName);
+        }
         await updateUserState();
 
         toast.success(data?.message || "Company login successful");
@@ -336,6 +353,12 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
       }
 
       localStorage.setItem("authToken", data.token);
+      localStorage.setItem("authRole", String(data?.user?.role || role));
+      if (data?.user) localStorage.setItem("authUser", JSON.stringify(data.user));
+      if (data?.user?.companyId) {
+        localStorage.setItem("companyId", String(data.user.companyId));
+        localStorage.setItem("activeCompanyId", String(data.user.companyId));
+      }
       await updateUserState();
 
       toast.success(data?.message || "Login successful");

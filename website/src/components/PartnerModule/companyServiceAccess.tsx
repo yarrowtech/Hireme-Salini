@@ -1,11 +1,10 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FaShieldAlt,
   FaLock,
   FaCheckCircle,
   FaTimesCircle,
   FaRegClock,
-  FaUsers,
   FaSearch,
   FaPlus,
   FaTrash,
@@ -15,8 +14,16 @@ import {
   FaBuilding,
   FaPhoneAlt,
   FaUserTie,
+  FaUser,
+  FaKey,
+  FaEye,
+  FaEyeSlash,
+  FaCopy,
+  FaFileDownload,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import companyApi from "../../api/company.api.js";
+import { getResolvedSubscription, loadCompanyBundle, normalizePlanKey, syncCompanyStorage } from "./companyHelpers";
 
 type SubStatus = "ACTIVE" | "EXPIRED" | "NONE";
 
@@ -27,16 +34,27 @@ type StoredSubscription = {
 };
 
 type Employee = {
-  id: string; // Employee ID
-  companyCode: string; // ✅ NEW
+  id: string;
+  companyCode: string;
   name: string;
   role: string;
   department: string;
-  contact: string; // phone/email
+  contact: string;
+  email: string;
+  username: string;
   status: "ACTIVE" | "INACTIVE";
+  hasLogin?: boolean;
+  loginUpdatedAt?: string | null;
+  passwordUpdatedAt?: string | null;
 };
 
 const cn = (...a: Array<string | false | undefined | null>) => a.filter(Boolean).join(" ");
+
+type CredentialPreview = {
+  username: string;
+  password: string;
+  generated?: boolean;
+};
 
 /* ---------------- Subscription helpers ---------------- */
 
@@ -57,9 +75,17 @@ function daysLeft(expiresAt: string) {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
-function getStatus(sub: StoredSubscription | null): SubStatus {
+  function getStatus(sub: StoredSubscription | null): SubStatus {
   if (!sub) return "NONE";
   return daysLeft(sub.expiresAt) >= 0 ? "ACTIVE" : "EXPIRED";
+}
+
+function isHrRecord(emp: any) {
+  return (
+    emp?.type === "HR" ||
+    String(emp?.role || "").toUpperCase() === "HR" ||
+    String(emp?.department || "").toUpperCase() === "HUMAN RESOURCES"
+  );
 }
 
 /* ---------------- Page ---------------- */
@@ -67,48 +93,21 @@ function getStatus(sub: StoredSubscription | null): SubStatus {
 export default function companyEmployeeManagement() {
   const navigate = useNavigate();
 
-  // ✅ You can later replace this with a real companyCode from auth/JWT
-  const DEFAULT_COMPANY_CODE = "CMP-IND-001";
-
-  const sub = useMemo(() => readSubscription(), []);
+  const [sub, setSub] = useState<StoredSubscription | null>(null);
+  const [liveSubscriptionActive, setLiveSubscriptionActive] = useState(false);
   const status = useMemo(() => getStatus(sub), [sub]);
-  const accessAllowed = status === "ACTIVE";
+  const accessAllowed = liveSubscriptionActive || status === "ACTIVE";
 
   const [query, setQuery] = useState("");
-
-  const [employees, setEmployees] = useState<Employee[]>([
-    {
-      id: "EMP-001",
-      companyCode: "CMP-IND-001",
-      name: "Rahul Sharma",
-      role: "Manager",
-      department: "Operations",
-      contact: "98765 43210",
-      status: "ACTIVE",
-    },
-    {
-      id: "EMP-002",
-      companyCode: "CMP-IND-001",
-      name: "Neha Das",
-      role: "HR",
-      department: "Human Resources",
-      contact: "neha@company.com",
-      status: "ACTIVE",
-    },
-    {
-      id: "EMP-003",
-      companyCode: "CMP-IND-002",
-      name: "Amit Roy",
-      role: "Staff",
-      department: "Sales",
-      contact: "91234 56789",
-      status: "INACTIVE",
-    },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [companyCode, setCompanyCode] = useState("");
 
   /* ---------------- Modal State ---------------- */
   const [modalOpen, setModalOpen] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const [credentialPreview, setCredentialPreview] = useState<CredentialPreview | null>(null);
 
   const [form, setForm] = useState<{
     id: string;
@@ -117,6 +116,9 @@ export default function companyEmployeeManagement() {
     role: string;
     department: string;
     contact: string;
+    email: string;
+    username: string;
+    password: string;
     status: "ACTIVE" | "INACTIVE";
   }>({
     id: "",
@@ -125,8 +127,91 @@ export default function companyEmployeeManagement() {
     role: "",
     department: "",
     contact: "",
+    email: "",
+    username: "",
+    password: "",
     status: "ACTIVE",
   });
+
+  const refreshFromBackend = useCallback(async () => {
+    setLoading(true);
+    const cached = readSubscription();
+    try {
+      const bundle = await loadCompanyBundle(await companyApi.resolveCompanyId());
+      const companyId = bundle?.companyId;
+
+      if (!companyId) {
+        if (cached) setSub(cached);
+        return;
+      }
+
+      const dashboard = bundle?.dashboard || null;
+      const hrAccess = bundle?.hrAccess || dashboard?.hrAccess || null;
+      const backendSubscription = getResolvedSubscription({
+        dashboard,
+        subscription: bundle?.subscription,
+        serviceAccess: dashboard?.serviceAccess || bundle?.subscription?.serviceAccess || null,
+      });
+      const subscription =
+        backendSubscription ||
+        dashboard?.subscription ||
+        bundle?.subscription?.subscription ||
+        bundle?.subscription?.serviceAccess?.subscription ||
+        null;
+      const serviceAccess = dashboard?.serviceAccess || bundle?.subscription?.serviceAccess || null;
+      const synced = syncCompanyStorage(bundle, companyId);
+
+      if (synced.subscription) {
+        setSub(synced.subscription as StoredSubscription);
+      } else if (subscription?.endsAt || subscription?.startsAt) {
+        setSub({
+          expiresAt: subscription.endsAt || subscription.expiresAt || new Date().toISOString(),
+          planKey: normalizePlanKey(
+            subscription.planKey || subscription.plan || subscription.planPrice || subscription.amount || "STARTER"
+          ),
+          billing: String(subscription.billing || subscription.billingCycle || "MONTHLY").toUpperCase() as "MONTHLY" | "YEARLY",
+        });
+      } else if (cached) {
+        setSub(cached);
+      }
+
+      const subscriptionActive =
+        dashboard?.subscriptionActive ??
+        (String(subscription?.status || "").toUpperCase() === "ACTIVE" &&
+          (!subscription?.endsAt || new Date(String(subscription.endsAt)).getTime() >= Date.now()));
+      setLiveSubscriptionActive(Boolean(subscriptionActive));
+
+      setCompanyCode(String(dashboard?.company?.companyCode || hrAccess?.companyCode || serviceAccess?.companyCode || ""));
+
+      const list = Array.isArray(hrAccess?.hrAccounts)
+        ? hrAccess.hrAccounts
+        : Array.isArray(serviceAccess?.employees)
+        ? serviceAccess.employees.filter(isHrRecord)
+        : [];
+
+      setEmployees(
+        list.map((e: any, idx: number) => ({
+          id: e.id || e.employeeId || `EMP-${idx + 1}`,
+          companyCode: e.companyCode || dashboard?.company?.companyCode || hrAccess?.companyCode || serviceAccess?.companyCode || "",
+          name: e.name || e.employeeName || "HR",
+          role: e.designation || e.role || "HR",
+          department: e.department || "Human Resources",
+          contact: e.contact || e.email || e.phone || "-",
+          email: e.email || "",
+          username: e.username || "",
+          status: e.status || "ACTIVE",
+          hasLogin: Boolean(e.hasLogin || e.userId || e.username),
+          loginUpdatedAt: e.loginUpdatedAt || null,
+          passwordUpdatedAt: e.passwordUpdatedAt || null,
+        }))
+      );
+    } catch (error) {
+      console.error("Failed to load employees", error);
+      if (cached) setSub(cached);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const filteredEmployees = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -140,13 +225,18 @@ export default function companyEmployeeManagement() {
 
   const openAddModal = () => {
     setEditId(null);
+    setShowPassword(false);
+    setCredentialPreview(null);
     setForm({
       id: `EMP-${Math.floor(100 + Math.random() * 900)}`,
-      companyCode: DEFAULT_COMPANY_CODE, // ✅ auto-fill
+      companyCode: companyCode || "", // ✅ auto-fill from backend
       name: "",
       role: "",
       department: "",
       contact: "",
+      email: "",
+      username: "",
+      password: "",
       status: "ACTIVE",
     });
     setModalOpen(true);
@@ -154,6 +244,8 @@ export default function companyEmployeeManagement() {
 
   const openEditModal = (emp: Employee) => {
     setEditId(emp.id);
+    setShowPassword(false);
+    setCredentialPreview(null);
     setForm({
       id: emp.id,
       companyCode: emp.companyCode, // ✅
@@ -161,49 +253,112 @@ export default function companyEmployeeManagement() {
       role: emp.role,
       department: emp.department,
       contact: emp.contact,
+      email: emp.email || "",
+      username: emp.username || "",
+      password: "",
       status: emp.status,
     });
     setModalOpen(true);
   };
 
+  useEffect(() => {
+    refreshFromBackend();
+  }, [refreshFromBackend]);
+
   const closeModal = () => setModalOpen(false);
 
-  const saveEmployee = () => {
+  const saveEmployee = async () => {
     if (
       !form.companyCode.trim() ||
       !form.name.trim() ||
       !form.id.trim() ||
       !form.role.trim() ||
       !form.department.trim() ||
-      !form.contact.trim()
+      !form.contact.trim() ||
+      !form.email.trim() ||
+      !form.username.trim()
     ) {
       alert("Please fill all fields.");
       return;
     }
 
-    if (editId) {
-      setEmployees((prev) => prev.map((e) => (e.id === editId ? { ...form } : e)));
-    } else {
-      const exists = employees.some((e) => e.id === form.id);
-      if (exists) {
-        alert("Employee ID already exists. Change ID.");
+    if (form.username.trim().length < 3) {
+      alert("Username must be at least 3 characters.");
+      return;
+    }
+
+    if (form.password && form.password.length < 6) {
+      alert("Password must be at least 6 characters.");
+      return;
+    }
+
+    if (!editId && employees.some((e) => e.id === form.id)) {
+      alert("Employee ID already exists. Change ID.");
+      return;
+    }
+
+    const companyId = await companyApi.resolveCompanyId();
+    if (companyId) {
+      const isEmail = form.contact.includes("@");
+      try {
+        const res = await companyApi.upsertCompanyHrAccount(companyId, {
+          id: form.id,
+          companyCode: form.companyCode,
+          name: form.name,
+          role: "HR",
+          department: "Human Resources",
+          contact: form.contact,
+          email: form.email.trim().toLowerCase(),
+          phone: isEmail ? "" : form.contact,
+          username: form.username.trim().toLowerCase(),
+          password: form.password,
+          status: form.status,
+        });
+        const preview = res?.credentialPreview;
+        if (preview?.password) {
+          setCredentialPreview({
+            username: String(preview.username || form.username.trim().toLowerCase()),
+            password: String(preview.password),
+            generated: Boolean(preview.generated),
+          });
+        }
+      } catch (error: any) {
+        alert(error?.response?.data?.message || "Failed to save HR account.");
         return;
       }
-      setEmployees((prev) => [{ ...form }, ...prev]);
+      await refreshFromBackend();
     }
 
     setModalOpen(false);
   };
 
-  const removeEmployee = (id: string) => {
+  const removeEmployee = async (id: string) => {
     if (!confirm("Delete this employee?")) return;
-    setEmployees((prev) => prev.filter((e) => e.id !== id));
+    const companyId = await companyApi.resolveCompanyId();
+    if (companyId) {
+      await companyApi.deleteCompanyHrAccount(companyId, id);
+      await refreshFromBackend();
+    }
   };
 
   const toggleEmployeeStatus = (id: string) => {
-    setEmployees((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, status: e.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" } : e))
-    );
+    (async () => {
+      const nextEmployee = employees.find((e) => e.id === id);
+      if (!nextEmployee) return;
+      const updated = {
+        ...nextEmployee,
+        status: (nextEmployee.status === "ACTIVE" ? "INACTIVE" : "ACTIVE") as "ACTIVE" | "INACTIVE",
+      };
+      const companyId = await companyApi.resolveCompanyId();
+      if (companyId) {
+        await companyApi.upsertCompanyHrAccount(companyId, {
+          ...updated,
+          role: "HR",
+          department: "Human Resources",
+        });
+        await refreshFromBackend();
+      }
+    })();
   };
 
   return (
@@ -214,32 +369,39 @@ export default function companyEmployeeManagement() {
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-white">
               <FaShieldAlt className="text-cyan-300" />
-              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Employee Management</h1>
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">HR Management</h1>
             </div>
 
             <p className="mt-2 text-sm text-slate-300 leading-relaxed max-w-2xl">
               Only companies with an <span className="text-white font-semibold">active subscription</span> can access
-              employee management features.
+              HR management features.
             </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
-              <span
-                className={cn(
-                  "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border",
-                  status === "ACTIVE"
-                    ? "bg-emerald-500/10 border-emerald-400/20 text-emerald-200"
+              {loading ? (
+                <span className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border bg-cyan-500/10 border-cyan-400/20 text-cyan-100">
+                  <FaRegClock />
+                  Syncing live status
+                </span>
+              ) : (
+                <span
+                  className={cn(
+                    "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border",
+                    accessAllowed
+                      ? "bg-emerald-500/10 border-emerald-400/20 text-emerald-200"
+                      : status === "EXPIRED"
+                      ? "bg-red-500/10 border-red-400/20 text-red-200"
+                      : "bg-white/5 border-white/10 text-slate-200"
+                  )}
+                >
+                  {accessAllowed ? <FaCheckCircle /> : status === "EXPIRED" ? <FaTimesCircle /> : <FaRegClock />}
+                  {accessAllowed
+                    ? "Subscription Active"
                     : status === "EXPIRED"
-                    ? "bg-red-500/10 border-red-400/20 text-red-200"
-                    : "bg-white/5 border-white/10 text-slate-200"
-                )}
-              >
-                {status === "ACTIVE" ? <FaCheckCircle /> : status === "EXPIRED" ? <FaTimesCircle /> : <FaRegClock />}
-                {status === "ACTIVE"
-                  ? "Subscription Active"
-                  : status === "EXPIRED"
-                  ? "Subscription Expired"
-                  : "No Subscription"}
-              </span>
+                    ? "Subscription Expired"
+                    : "No Subscription"}
+                </span>
+              )}
 
               {sub?.expiresAt && (
                 <span className="text-xs text-slate-400">
@@ -257,7 +419,7 @@ export default function companyEmployeeManagement() {
 
               {/* ✅ Company code badge */}
               <span className="text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
-                Company Code: <span className="text-white font-semibold">{DEFAULT_COMPANY_CODE}</span>
+                Company Code: <span className="text-white font-semibold">{companyCode || "-"}</span>
               </span>
             </div>
           </div>
@@ -282,9 +444,13 @@ export default function companyEmployeeManagement() {
               </div>
 
               <div className="min-w-0">
-                <div className="text-white font-bold">{accessAllowed ? "Unlocked" : "Locked"}</div>
+                <div className="text-white font-bold">{loading ? "Syncing" : accessAllowed ? "Unlocked" : "Locked"}</div>
                 <div className="text-sm text-slate-300 mt-1">
-                  {accessAllowed ? "You can manage employees here." : "Purchase/renew subscription to unlock employee management."}
+                  {loading
+                    ? "Fetching the latest employee and subscription data from the backend."
+                    : accessAllowed
+                  ? "You can manage HR accounts here."
+                    : "Purchase/renew subscription to unlock HR management."}
                 </div>
               </div>
             </div>
@@ -302,7 +468,7 @@ export default function companyEmployeeManagement() {
                   onClick={openAddModal}
                   className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border transition bg-white/5 hover:bg-white/10 border-white/10 text-white"
                 >
-                  <FaPlus /> Add Employee
+                  <FaPlus /> Add HR Account
                 </button>
               )}
             </div>
@@ -310,8 +476,12 @@ export default function companyEmployeeManagement() {
         </div>
       </div>
 
-      {/* ================= Locked screen ================= */}
-      {!accessAllowed ? (
+      {/* ================= Locked / Loading / Table ================= */}
+      {loading ? (
+        <div className="mt-6 rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-6 text-cyan-100">
+          Loading live HR and subscription data from the backend...
+        </div>
+      ) : !accessAllowed ? (
         <div className="mt-6 rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
           <div className="flex items-start gap-4">
             <div className="h-12 w-12 rounded-2xl bg-red-500/15 border border-red-500/25 text-red-200 grid place-items-center">
@@ -319,9 +489,9 @@ export default function companyEmployeeManagement() {
             </div>
 
             <div className="min-w-0">
-              <h2 className="text-lg font-extrabold text-white">Employee Management Locked</h2>
+              <h2 className="text-lg font-extrabold text-white">HR Management Locked</h2>
               <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-                Your subscription is not active. Renew/purchase a plan to access employee management.
+                Your subscription is not active. Renew/purchase a plan to access HR management.
               </p>
 
               <div className="mt-4">
@@ -340,8 +510,8 @@ export default function companyEmployeeManagement() {
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-white font-extrabold text-lg">
-              <FaUsers className="text-cyan-300" />
-              Employees
+              <FaUserTie className="text-cyan-300" />
+              HR Accounts
             </div>
 
             <div className="flex flex-wrap gap-2 items-center">
@@ -360,7 +530,7 @@ export default function companyEmployeeManagement() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-100 font-semibold px-4 py-2 transition"
               >
                 <FaPlus />
-                Add Employee
+                Add HR Account
               </button>
             </div>
           </div>
@@ -398,6 +568,11 @@ export default function companyEmployeeManagement() {
                         <FaPhoneAlt className="text-slate-400" /> Contact Info
                       </span>
                     </th>
+                    <th className="text-left px-4 py-3">
+                      <span className="inline-flex items-center gap-2">
+                        <FaUser className="text-slate-400" /> Username
+                      </span>
+                    </th>
                     <th className="text-left px-4 py-3">Status</th>
                     <th className="text-right px-4 py-3">Actions</th>
                   </tr>
@@ -412,6 +587,15 @@ export default function companyEmployeeManagement() {
                       <td className="px-4 py-3">{e.role}</td>
                       <td className="px-4 py-3">{e.department}</td>
                       <td className="px-4 py-3 text-slate-200">{e.contact}</td>
+                      <td className="px-4 py-3">
+                        <div className="text-slate-200">{e.username || "-"}</div>
+                        <div className="mt-1 text-xs text-slate-400">
+                          {e.hasLogin ? "Password set" : "Login not configured"}
+                          {(e.loginUpdatedAt || e.passwordUpdatedAt)
+                            ? ` • Updated ${new Date(String(e.loginUpdatedAt || e.passwordUpdatedAt)).toLocaleDateString()}`
+                            : ""}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => toggleEmployeeStatus(e.id)}
@@ -451,7 +635,7 @@ export default function companyEmployeeManagement() {
 
                   {filteredEmployees.length === 0 && (
                     <tr className="border-t border-white/10">
-                      <td colSpan={8} className="px-4 py-10 text-center text-slate-300">
+                      <td colSpan={9} className="px-4 py-10 text-center text-slate-300">
                         No employees found.
                       </td>
                     </tr>
@@ -469,7 +653,7 @@ export default function companyEmployeeManagement() {
 
       {/* ================= Add/Edit Modal (with scroll) ================= */}
       {modalOpen && (
-        <ModalShell title={editId ? "Edit Employee" : "Add Employee"} onClose={closeModal}>
+        <ModalShell title={editId ? "Edit HR Account" : "Add HR Account"} onClose={closeModal}>
           {/* ✅ Modal body scroll system */}
           <div className="max-h-[60vh] overflow-y-auto pr-1">
             <div className="grid gap-2 sm:grid-cols-2">
@@ -528,6 +712,54 @@ export default function companyEmployeeManagement() {
                 />
               </Field>
 
+              <div className="sm:col-span-2 mt-2 border-t border-white/10 pt-3">
+                <div className="flex items-center gap-2 text-xs font-semibold text-cyan-200 mb-2">
+                  <FaKey /> Login Credentials
+                </div>
+              </div>
+
+              <Field label="Email">
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none"
+                  placeholder="hr@company.com"
+                />
+              </Field>
+
+              <Field label="Username">
+                <input
+                  value={form.username}
+                  onChange={(e) => setForm((p) => ({ ...p, username: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none"
+                  placeholder="Used to sign in"
+                />
+              </Field>
+
+              <Field label={editId ? "New Password (optional)" : "Password"} className="sm:col-span-2">
+                <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  value={form.password}
+                  onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 pr-12 text-white outline-none"
+                  placeholder={editId ? "Leave blank to keep current password" : "Leave blank to auto-generate"}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((v) => !v)}
+                    className="absolute inset-y-0 right-2 my-auto inline-flex h-8 items-center rounded-lg border border-white/10 bg-white/5 px-2 text-white transition hover:bg-white/10"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </button>
+                </div>
+                <div className="mt-2 text-xs text-slate-400">
+                  Leave blank to auto-generate a temporary password and show it once after saving.
+                </div>
+              </Field>
+
               <Field label="Status" className="sm:col-span-2">
                 <select
                   value={form.status}
@@ -552,10 +784,14 @@ export default function companyEmployeeManagement() {
               onClick={saveEmployee}
               className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-100 font-semibold px-4 py-2 transition"
             >
-              {editId ? "Save Changes" : "Add Employee"}
+              {editId ? "Save Changes" : "Add HR Account"}
             </button>
           </div>
         </ModalShell>
+      )}
+
+      {credentialPreview && (
+        <CredentialModal credential={credentialPreview} onClose={() => setCredentialPreview(null)} />
       )}
     </div>
   );
@@ -608,7 +844,81 @@ function ModalShell({
         <div className="p-4">{children}</div>
 
         <div className="px-4 py-2 border-t border-white/10 text-[11px] text-slate-400">
-          Demo mode: frontend only (connect backend later).
+          Connected to backend company service access data.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CredentialModal({
+  credential,
+  onClose,
+}: {
+  credential: CredentialPreview;
+  onClose: () => void;
+}) {
+  const copyCredentials = async () => {
+    const text = `Username: ${credential.username}\nPassword: ${credential.password}`;
+    await navigator.clipboard.writeText(text);
+  };
+
+  const downloadCsv = () => {
+    const csv = [
+      "username,password",
+      `"${credential.username.replace(/"/g, '""')}","${credential.password.replace(/"/g, '""')}"`,
+    ].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `hr-credentials-${credential.username || "account"}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center p-3">
+      <div className="absolute inset-0 bg-black/75" onClick={onClose} />
+
+      <div className="relative w-full max-w-md rounded-3xl border border-cyan-400/20 bg-slate-950 p-5 shadow-2xl">
+        <div className="text-lg font-extrabold text-white">Credentials Ready</div>
+        <p className="mt-2 text-sm text-slate-300">
+          {credential.generated
+            ? "Temporary login credentials were generated for this HR account."
+            : "Login credentials were saved."}
+        </p>
+
+        <div className="mt-4 space-y-3">
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="text-[11px] text-slate-400">Username</div>
+            <div className="mt-1 font-semibold text-white">{credential.username}</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+            <div className="text-[11px] text-slate-400">Password</div>
+            <div className="mt-1 font-semibold text-white">{credential.password}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-2 sm:flex-row">
+          <button
+            onClick={copyCredentials}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            <FaCopy /> Copy
+          </button>
+          <button
+            onClick={downloadCsv}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-4 py-2 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-500/25"
+          >
+            <FaFileDownload /> Download CSV
+          </button>
+          <button
+            onClick={onClose}
+            className="inline-flex items-center justify-center rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Close
+          </button>
         </div>
       </div>
     </div>

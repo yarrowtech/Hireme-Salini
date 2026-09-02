@@ -19,6 +19,7 @@ import {
   FaTrash,
 } from "react-icons/fa";
 import { toast } from "react-toastify";
+import api, { buildFileUrl } from "../../api/axios.js";
 
 import {
   getPendingCompanyRequests,
@@ -94,9 +95,27 @@ const DOC_META: Array<{
   { key: "TRADE", title: "Trade License", required: true, placeholder: "Click to view Trade License" },
 ];
 
-function safeDate(val?: string) {
+function safeDate(val?: any) {
   if (!val) return "-";
+  const d = new Date(val);
+  if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10); // ✅ always YYYY-MM-DD
   return String(val).slice(0, 10);
+}
+
+function addMonthsSafe(date: Date, months: number) {
+  const d = new Date(date);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if (d.getDate() !== day) d.setDate(0);
+  return d;
+}
+
+function addYearsSafe(date: Date, years: number) {
+  const d = new Date(date);
+  const month = d.getMonth();
+  d.setFullYear(d.getFullYear() + years);
+  if (d.getMonth() !== month) d.setDate(0);
+  return d;
 }
 
 /* ===================== PLAN PICKER ===================== */
@@ -109,7 +128,6 @@ function pickPlan(doc: any): SubscriptionInfo | undefined {
     doc?.pricing?.planKey ||
     doc?.pricing?.plan_key ||
     "";
-
   const planName =
     doc?.planName ||
     doc?.subscription?.planName ||
@@ -133,19 +151,49 @@ function pickPlan(doc: any): SubscriptionInfo | undefined {
     Number(doc?.amount) ||
     0;
 
-  const status = doc?.planStatus || doc?.subscription?.status || doc?.pricing?.status || doc?.status || "Pending";
+  const status =
+    doc?.planStatus ||
+    doc?.subscription?.status ||
+    doc?.pricing?.status ||
+    doc?.status ||
+    "Pending";
 
   if (!planName && !planKey) return undefined;
+
+  const startRaw =
+    doc?.subscription?.startDate ||
+    doc?.planStartDate ||
+    doc?.approvedAt ||
+    doc?.createdAt ||
+    null;
+
+  const endRaw =
+    doc?.subscription?.endDate ||
+    doc?.planEndDate ||
+    null;
+
+  const billing = String(
+    doc?.subscription?.billingCycle || doc?.billingCycle || ""
+  ).toUpperCase(); // MONTHLY/YEARLY
+
+  const startD = startRaw ? new Date(startRaw) : null;
+  let endD = endRaw ? new Date(endRaw) : null;
+
+  // ✅ Fallback: if backend endDate is missing, compute from start + billingCycle
+  if ((!endRaw || (endD && isNaN(endD.getTime()))) && startD && !isNaN(startD.getTime())) {
+    endD = billing === "YEARLY" ? addYearsSafe(startD, 1) : addMonthsSafe(startD, 1);
+  }
 
   return {
     planName: String(planName || planKey),
     planKey: planKey ? String(planKey) : undefined,
     amount,
     status: String(status || "Pending"),
-    startDate: safeDate(doc?.planStartDate || doc?.subscription?.startDate || doc?.createdAt),
-    endDate: safeDate(doc?.planEndDate || doc?.subscription?.endDate || doc?.updatedAt),
+    startDate: safeDate(startD),
+    endDate: safeDate(endD),
   };
 }
+
 
 /* ===================== SMART DOC PICKER ===================== */
 const DOC_ALIASES: Record<DocKey, string[]> = {
@@ -325,15 +373,17 @@ export default function AdminUserManagement() {
   );
 
   /* ===================== DOCUMENT VIEW ===================== */
- const viewDocByKey = async (partnerId: string, key: DocKey) => {
+const viewDocByKey = async (partnerId: string, key: DocKey) => {
   try {
     setDocLoading(true);
 
     const direct = selected?.docs?.[key]?.url;
-    const url = direct || (unwrap(await getCompanyDocument(partnerId, key))?.url);
+    const raw = direct || unwrap(await getCompanyDocument(partnerId, key))?.url;
 
-    if (!url) throw new Error("Document URL missing");
-    window.open(url, "_blank");
+    if (!raw) throw new Error("Document URL missing");
+
+    const url = buildFileUrl(raw);
+    window.open(url, "_blank", "noopener,noreferrer");
   } catch (e: any) {
     toast.error(e?.response?.data?.message || e?.message || "Failed to open document");
   } finally {

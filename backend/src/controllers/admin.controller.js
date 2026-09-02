@@ -18,6 +18,54 @@ function normalizeStatus(s) {
   return String(s || "").trim().toUpperCase();
 }
 
+/* =========================================
+   ✅ SUBSCRIPTION DATE HELPERS (NEW)
+   - Monthly: +1 month
+   - Yearly: +1 year
+   - Renewal: if current endDate is in future, extend from endDate
+========================================= */
+function addMonthsSafe(date, months) {
+  const d = new Date(date);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  // Handle month overflow: Jan 31 -> Feb end, etc.
+  if (d.getDate() !== day) d.setDate(0);
+  return d;
+}
+
+function addYearsSafe(date, years) {
+  const d = new Date(date);
+  const month = d.getMonth();
+  d.setFullYear(d.getFullYear() + years);
+  // Handle leap-year overflow: Feb 29 -> Feb end
+  if (d.getMonth() !== month) d.setDate(0);
+  return d;
+}
+
+function normalizeBillingCycle(val) {
+  const s = String(val || "").trim().toUpperCase();
+  if (s.includes("YEAR")) return "YEARLY";
+  return "MONTHLY";
+}
+
+/**
+ * Computes correct subscription window.
+ * startDate shown to user = purchase time (now)
+ * endDate = +1 month/+1 year based on cycle
+ * If renewing before expiry: extend from current endDate
+ */
+function computePlanWindow({ billingCycle, currentEndDate }) {
+  const now = new Date();
+  const cycle = normalizeBillingCycle(billingCycle);
+
+  const base =
+    currentEndDate && new Date(currentEndDate) > now ? new Date(currentEndDate) : now;
+
+  const endDate = cycle === "YEARLY" ? addYearsSafe(base, 1) : addMonthsSafe(base, 1);
+
+  return { startDate: now, endDate, billingCycle: cycle };
+}
+
 const DOC_KEYS = ["PAN", "ESI", "PF", "MOA", "MSME", "GST", "TRADE"];
 
 /**
@@ -127,7 +175,6 @@ function extractDocs(company) {
   return out;
 }
 
-
 /**
  * Normalize plan/subscription from many possible company shapes
  * so frontend always gets:
@@ -202,7 +249,6 @@ function extractSubscription(company) {
   };
 }
 
-
 function extractCompanyName(company) {
   return (
     company.CompanyName ||
@@ -249,7 +295,6 @@ function shapeCompanyForAdmin(company) {
     docs: extractDocs(obj),
   };
 }
-
 
 /* =========================
    ✅ PLANS CATALOG (for frontend UI)
@@ -307,18 +352,16 @@ async function getAdminPlans(req, res) {
 /* =========================
    ✅ UPDATE SUBSCRIPTION (Upgrade / Change Plan)
    PUT /api/admin/company/:companyId/subscription
-   body: { planKey, billingCycle, planPrice, startDate?, endDate? }
+   body: { planKey, billingCycle, planPrice }
+   - startDate/endDate are computed server-side (NEW)
 ========================= */
 async function updateCompanySubscription(req, res, next) {
   try {
     const { companyId } = req.params;
 
     const planKey = String(req.body.planKey || "").trim().toUpperCase();
-    const billingCycle = String(req.body.billingCycle || "").trim().toUpperCase(); // MONTHLY / YEARLY
+    const billingCycle = normalizeBillingCycle(req.body.billingCycle); // MONTHLY / YEARLY
     const planPrice = Number(req.body.planPrice || 0);
-
-    const startDate = req.body.startDate || new Date();
-    const endDate = req.body.endDate || null;
 
     if (!planKey) {
       return res.status(400).json({ success: false, message: "planKey is required" });
@@ -336,15 +379,33 @@ async function updateCompanySubscription(req, res, next) {
     const doc = await Company.findById(companyId);
     if (!doc) return res.status(404).json({ success: false, message: "Company not found" });
 
+    // ✅ Compute correct plan window
+    const { startDate, endDate } = computePlanWindow({
+      billingCycle,
+      currentEndDate: doc.planEndDate || doc.subscription?.endDate,
+    });
+
     // ✅ store in your existing db fields (used by extractSubscription)
     doc.planKey = planKey;
     doc.billingCycle = billingCycle;
     doc.planPrice = planPrice;
 
-    // optional fields (if exist in schema, they will be saved; if not, mongoose ignores them unless strict=false)
-    doc.planStartDate = startDate;
-    doc.planEndDate = endDate;
+    doc.planStartDate = startDate; // purchase date
+    doc.planEndDate = endDate;     // +1 month/+1 year
     doc.planStatus = "Active";
+
+    // ✅ Keep subscription object in sync (if you use it anywhere)
+    doc.subscription = {
+      ...(doc.subscription || {}),
+      planKey,
+      billingCycle,
+      planPrice,
+      amount: planPrice,
+      status: "Active",
+      startDate,
+      endDate,
+      lastPaidAt: startDate,
+    };
 
     await doc.save();
 

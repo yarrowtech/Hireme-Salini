@@ -12,9 +12,11 @@ async function connectDB(uri) {
     mongoose.connection.on("error", (e) => console.log("❌ MongoDB error:", e.message));
 
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 30000,
-      connectTimeoutMS: 30000,
-      socketTimeoutMS: 45000,
+      serverSelectionTimeoutMS: 60000,
+      connectTimeoutMS: 60000,
+      socketTimeoutMS: 80000,
+      family: 4, // forces IPv4
+  tls: true,
     });
 
     console.log("✅ MongoDB connected (mongoose)");

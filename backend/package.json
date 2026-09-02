@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "seed": "node src/scripts/seed.js"
+    "seed": "node src/scripts/seed.js",
+    "migrate:hr": "node src/scripts/migrateHrAccess.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

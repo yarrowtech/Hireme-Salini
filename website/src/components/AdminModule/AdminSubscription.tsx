@@ -1,5 +1,14 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { FaCrown, FaUsers, FaClock, FaArrowUp, FaSearch, FaCheck, FaTimes, FaEye } from "react-icons/fa";
+import {
+  FaCrown,
+  FaUsers,
+  FaClock,
+  FaArrowUp,
+  FaSearch,
+  FaCheck,
+  FaTimes,
+  FaEye,
+} from "react-icons/fa";
 import { toast } from "react-toastify";
 
 // ✅ IMPORTANT: import from TS wrapper (NO .js)
@@ -29,16 +38,14 @@ type AdminPlan = {
 
 type CompanyRow = any;
 
-const cn = (...x: Array<string | false | null | undefined>) => x.filter(Boolean).join(" ");
+const cn = (...x: Array<string | false | null | undefined>) =>
+  x.filter(Boolean).join(" ");
 
 /* =========================
    ✅ STRICT company display helpers
    ✅ NO "name" fallback anywhere
-   (so person name can never appear)
 ========================= */
 function getCompanyName(row: any) {
-  // your backend already returns company object -> CompanyName should exist
-  // but we still add safe fallbacks for different DB shapes
   const v =
     row?.CompanyName ||
     row?.company_name ||
@@ -62,12 +69,24 @@ function getCompanyEmail(row: any) {
   return String(v || "").trim();
 }
 
-/* -------------------- Date helpers -------------------- */
+/* -------------------- Date helpers (robust) -------------------- */
+/**
+ * safeDate handles:
+ * - ISO strings
+ * - Date objects
+ * - numbers
+ * - undefined/null
+ * - badly formatted strings (returns null)
+ */
 function safeDate(d: any) {
+  if (!d) return null;
   const dt = new Date(d);
   return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
+/**
+ * Formats a Date into YYYY-MM-DD (stable, no locale issues)
+ */
 function toISODate(d: Date) {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
@@ -75,17 +94,102 @@ function toISODate(d: Date) {
   return `${y}-${m}-${dd}`;
 }
 
-function addDays(d: Date, days: number) {
-  const x = new Date(d);
-  x.setDate(x.getDate() + days);
-  return x;
+/**
+ * Month add with overflow protection:
+ * Jan 31 + 1 month => Feb last day
+ */
+function addMonthsSafe(date: Date, months: number) {
+  const d = new Date(date);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if (d.getDate() !== day) d.setDate(0);
+  return d;
+}
+
+/**
+ * Year add with leap protection:
+ * Feb 29 + 1 year => Feb last day
+ */
+function addYearsSafe(date: Date, years: number) {
+  const d = new Date(date);
+  const month = d.getMonth();
+  d.setFullYear(d.getFullYear() + years);
+  if (d.getMonth() !== month) d.setDate(0);
+  return d;
+}
+
+/**
+ * Read ISO from multiple backend shapes safely
+ * ✅ This is the key fix
+ */
+function resolveStartDate(row: any) {
+  const raw =
+    row?.subscription?.startDate ||
+    row?.planStartDate ||
+    row?.approvedAt ||
+    row?.createdAt ||
+    null;
+
+  const dt = safeDate(raw);
+  return dt ? toISODate(dt) : "";
+}
+
+/**
+ * ✅ End date resolver (NEVER blank again)
+ * Priority:
+ * 1) subscription.endDate
+ * 2) planEndDate
+ * 3) compute from start date + 1 month (or +1 year if cycle YEARLY)
+ */
+function resolveEndDate(row: any) {
+  // 1) Use backend end date if present
+  const rawEnd =
+    row?.subscription?.endDate ||
+    row?.planEndDate ||
+    null;
+
+  const endDt = safeDate(rawEnd);
+  if (endDt) return toISODate(endDt);
+
+  // 2) Compute fallback from start date
+  const rawStart =
+    row?.subscription?.startDate ||
+    row?.planStartDate ||
+    row?.approvedAt ||
+    row?.createdAt ||
+    null;
+
+  const startDt = safeDate(rawStart);
+  if (!startDt) return "";
+
+  // 3) Compute using cycle (but you said currently monthly is used)
+  const rawCycle =
+    row?.subscription?.billingCycle ||
+    row?.billingCycle ||
+    row?.billing_cycle ||
+    "MONTHLY";
+
+  const cycle = String(rawCycle || "MONTHLY").toUpperCase() === "YEARLY" ? "YEARLY" : "MONTHLY";
+
+  const computed = cycle === "YEARLY" ? addYearsSafe(startDt, 1) : addMonthsSafe(startDt, 1);
+  return toISODate(computed);
+}
+
+function isExpiredByEnd(endISO: string) {
+  if (!endISO) return false;
+  return new Date(endISO + "T23:59:59").getTime() < Date.now();
+}
+
+function statusBadge(endISO: string, planName: string) {
+  if (!planName) return "No Plan";
+  return isExpiredByEnd(endISO) ? "Expired" : "Active";
 }
 
 /* -------------------- API payload helpers -------------------- */
 function pickRows(payload: any) {
   if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.data)) return payload.data;
-  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  if (Array.isArray(payload?.data)) return payload.data; // {success, data:[]}
+  if (Array.isArray(payload?.data?.data)) return payload.data.data; // weird nested
   return [];
 }
 
@@ -115,31 +219,13 @@ function getPlanAmount(row: any) {
 }
 
 function getBillingCycle(row: any): BillingCycle {
-  const raw = row?.subscription?.billingCycle || row?.billingCycle || row?.billing_cycle || "MONTHLY";
+  const raw =
+    row?.subscription?.billingCycle ||
+    row?.billingCycle ||
+    row?.billing_cycle ||
+    "MONTHLY";
   const v = String(raw).toUpperCase();
   return v === "YEARLY" ? "YEARLY" : "MONTHLY";
-}
-
-function resolveStartDate(row: any) {
-  const x = row?.subscription?.startDate || row?.planStartDate || row?.approvedAt || row?.createdAt || null;
-  const dt = safeDate(x);
-  return dt ? toISODate(dt) : "";
-}
-
-function resolveEndDate(row: any) {
-  const x = row?.subscription?.endDate || row?.planEndDate || null;
-  const dt = safeDate(x);
-  return dt ? toISODate(dt) : "";
-}
-
-function isExpiredByEnd(endISO: string) {
-  if (!endISO) return false;
-  return new Date(endISO + "T23:59:59").getTime() < Date.now();
-}
-
-function statusBadge(endISO: string, planName: string) {
-  if (!planName) return "No Plan";
-  return isExpiredByEnd(endISO) ? "Expired" : "Active";
 }
 
 export default function AdminSubscription() {
@@ -195,13 +281,12 @@ export default function AdminSubscription() {
     };
   }, []);
 
-  const allRows = useMemo(() => [...pendingRows, ...approvedRows, ...rejectedRows], [
-    pendingRows,
-    approvedRows,
-    rejectedRows,
-  ]);
+  const allRows = useMemo(
+    () => [...pendingRows, ...approvedRows, ...rejectedRows],
+    [pendingRows, approvedRows, rejectedRows]
+  );
 
-  // ✅ FIX: search ONLY by CompanyName + companyEmail (no person name)
+  // ✅ search ONLY by CompanyName + companyEmail
   const filteredSubscribers = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = approvedRows || [];
@@ -308,9 +393,12 @@ export default function AdminSubscription() {
     try {
       setViewOpen(true);
       setViewLoading(true);
+
+      // admin.api returns res.data already: { success, data: companyObj }
       const res = await getCompanyDetails(companyId);
-      // typical axios: res.data => { success, data: {...} }
-      const row = res?.data?.data || res?.data || res;
+
+      // ✅ correct company object is inside res.data
+      const row = res?.data || null;
       setViewRow(row);
     } catch (e: any) {
       toast.error(e?.response?.data?.message || "Failed to load company details");
@@ -339,26 +427,22 @@ export default function AdminSubscription() {
 
   const selectedPlan = useMemo(() => {
     if (!selectedPlanKey) return null;
-    return plans.find((p) => String(p.key).toUpperCase() === String(selectedPlanKey).toUpperCase()) || null;
+    return (
+      plans.find((p) => String(p.key).toUpperCase() === String(selectedPlanKey).toUpperCase()) ||
+      null
+    );
   }, [plans, selectedPlanKey]);
 
   async function submitUpgrade() {
     if (!upgradeTarget) return toast.info("Pick a subscriber first");
     if (!selectedPlan) return toast.info("Select a plan");
 
-    const now = new Date();
-    const startDate = toISODate(now);
-    const endDate = cycle === "MONTHLY" ? toISODate(addDays(now, 30 - 1)) : toISODate(addDays(now, 365 - 1));
-
-    const planPrice = cycle === "MONTHLY" ? selectedPlan.monthlyPrice : selectedPlan.yearlyPrice;
-
     try {
+      // ✅ backend computes startDate + endDate
       await updateCompanySubscription(String(upgradeTarget._id), {
         planKey: selectedPlan.key,
-        billingCycle: cycle,
-        planPrice,
-        startDate,
-        endDate,
+        billingCycle: "MONTHLY", // ✅ force monthly now
+        planPrice: selectedPlan.monthlyPrice,
       });
 
       toast.success("Subscription updated");
@@ -437,7 +521,6 @@ export default function AdminSubscription() {
                 <div className="text-slate-300">Loading…</div>
               ) : (
                 <>
-                  {/* ✅ CompanyName ONLY */}
                   <div className="text-white font-extrabold text-xl">{getCompanyName(viewRow)}</div>
                   <div className="text-xs text-slate-400 mt-1">
                     Email: <span className="text-slate-200">{getCompanyEmail(viewRow)}</span>
@@ -446,9 +529,14 @@ export default function AdminSubscription() {
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <div className="text-xs text-slate-400">Subscription</div>
-                      <div className="text-white font-extrabold mt-1">{getPlanName(viewRow) || "No Plan"}</div>
+                      <div className="text-white font-extrabold mt-1">
+                        {getPlanName(viewRow) || "No Plan"}
+                      </div>
                       <div className="text-xs text-slate-400 mt-2">
-                        Amount: <span className="text-cyan-200 font-extrabold">₹{getPlanAmount(viewRow)}</span>
+                        Amount:{" "}
+                        <span className="text-cyan-200 font-extrabold">
+                          ₹{getPlanAmount(viewRow)}
+                        </span>
                       </div>
                       <div className="text-xs text-slate-400 mt-2">
                         Cycle: <span className="text-slate-200">{getBillingCycle(viewRow)}</span>
@@ -458,10 +546,12 @@ export default function AdminSubscription() {
                     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
                       <div className="text-xs text-slate-400">Validity</div>
                       <div className="text-xs text-slate-400 mt-2">
-                        Start: <span className="text-slate-200">{resolveStartDate(viewRow) || "-"}</span>
+                        Start:{" "}
+                        <span className="text-slate-200">{resolveStartDate(viewRow) || "-"}</span>
                       </div>
                       <div className="text-xs text-slate-400 mt-2">
-                        End: <span className="text-slate-200">{resolveEndDate(viewRow) || "-"}</span>
+                        End:{" "}
+                        <span className="text-slate-200">{resolveEndDate(viewRow) || "-"}</span>
                       </div>
                       <div className="mt-3">
                         <span
@@ -516,7 +606,6 @@ export default function AdminSubscription() {
                 {filteredSubscribers.map((r: any) => {
                   const id = String(r?._id);
 
-                  // ✅ CompanyName ONLY (no row.name)
                   const CompanyName = getCompanyName(r);
                   const companyEmail = getCompanyEmail(r);
 
@@ -535,7 +624,10 @@ export default function AdminSubscription() {
                       <td className="px-5 py-3 text-slate-200">
                         {plan ? (
                           <>
-                            {plan} • <span className="text-cyan-200 font-extrabold">₹{getPlanAmount(r)}</span>
+                            {plan} •{" "}
+                            <span className="text-cyan-200 font-extrabold">
+                              ₹{getPlanAmount(r)}
+                            </span>
                           </>
                         ) : (
                           <span className="text-slate-400">No Plan</span>
@@ -598,12 +690,13 @@ export default function AdminSubscription() {
       {activeTab === "Requests" && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-3">
           {pendingRows.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-slate-300">No pending requests</div>
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-slate-300">
+              No pending requests
+            </div>
           ) : (
             pendingRows.map((r: any) => {
               const id = String(r?._id);
 
-              // ✅ CompanyName ONLY
               const CompanyName = getCompanyName(r);
               const companyEmail = getCompanyEmail(r);
 
@@ -652,13 +745,14 @@ export default function AdminSubscription() {
       {activeTab === "History" && (
         <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
           {allRows.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-slate-300">No history yet</div>
+            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-slate-300">
+              No history yet
+            </div>
           ) : (
             <div className="space-y-3">
               {allRows.map((r: any) => {
                 const id = String(r?._id);
 
-                // ✅ CompanyName ONLY
                 const CompanyName = getCompanyName(r);
                 const companyEmail = getCompanyEmail(r);
                 const st = String(r?.status || "").toUpperCase();
@@ -681,7 +775,9 @@ export default function AdminSubscription() {
                         {st || "UNKNOWN"}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 mt-2">Registered: {resolveStartDate(r) || "-"}</div>
+                    <div className="text-xs text-slate-500 mt-2">
+                      Registered: {resolveStartDate(r) || "-"}
+                    </div>
                   </div>
                 );
               })}
@@ -802,7 +898,8 @@ export default function AdminSubscription() {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {plans.map((p) => {
-              const isSelected = String(selectedPlanKey).toUpperCase() === String(p.key).toUpperCase();
+              const isSelected =
+                String(selectedPlanKey).toUpperCase() === String(p.key).toUpperCase();
               const price = cycle === "MONTHLY" ? p.monthlyPrice : p.yearlyPrice;
               const suffix = cycle === "MONTHLY" ? "/ month" : "/ year";
 

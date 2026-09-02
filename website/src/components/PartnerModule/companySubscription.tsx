@@ -1,5 +1,5 @@
 
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FaCrown,
   FaBolt,
@@ -17,6 +17,8 @@ import {
 } from "react-icons/fa";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import companyApi from "../../api/company.api.js";
+import { getResolvedSubscription, loadCompanyBundle, normalizePlanKey, syncCompanyStorage } from "./companyHelpers";
 
 type PlanKey = "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
 type Billing = "MONTHLY" | "YEARLY";
@@ -154,6 +156,25 @@ function computeStatus(sub: StoredSubscription | null): SubStatus {
   return daysLeft(sub.expiresAt) >= 0 ? "ACTIVE" : "EXPIRED";
 }
 
+function toStoredSubscription(remote: any, fallbackPlan: PlanKey, fallbackBilling: Billing): StoredSubscription | null {
+  if (!remote) return null;
+
+  const planKey = normalizePlanKey(remote.planKey || remote.plan || remote.planPrice || remote.amount || fallbackPlan) as PlanKey;
+  const billing = String(remote.billing || remote.billingCycle || fallbackBilling || "MONTHLY").toUpperCase() as Billing;
+  const purchasedAt = remote.purchasedAt || remote.startsAt || remote.createdAt || new Date().toISOString();
+  const expiresAt = remote.expiresAt || remote.endsAt || new Date().toISOString();
+
+  return {
+    planKey,
+    billing,
+    purchasedAt,
+    expiresAt,
+    purchaseCount: Number(remote.purchaseCount || 1),
+    renewCount: Number(remote.renewCount || 0),
+    history: Array.isArray(remote.history) ? remote.history : [],
+  };
+}
+
 export default function companySubscription() {
   const exportRef = useRef<HTMLDivElement | null>(null);
 
@@ -166,6 +187,7 @@ export default function companySubscription() {
   const [historyOpen, setHistoryOpen] = useState(true);
 
   const [stored, setStored] = useState<StoredSubscription | null>(() => safeReadSubscription());
+  const [, setLoading] = useState(true);
 
   const status: SubStatus = useMemo(() => computeStatus(stored), [stored]);
 
@@ -177,11 +199,56 @@ export default function companySubscription() {
   const accessBlocked = status !== "ACTIVE";
   const canPurchase = selectedPlanObj.pricing.type === "FIXED";
 
-  const handlePurchase = () => {
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const companyId = await companyApi.resolveCompanyId();
+        const bundle = await loadCompanyBundle(companyId || undefined);
+        const company = bundle?.dashboard?.company || null;
+        const resolvedRemote = getResolvedSubscription({
+          dashboard: bundle?.dashboard,
+          subscription: bundle?.subscription,
+          serviceAccess: bundle?.dashboard?.serviceAccess || bundle?.analytics?.analytics?.serviceAccess || null,
+          company,
+        });
+
+        if (companyId) {
+          syncCompanyStorage(
+            {
+              company,
+              subscription: bundle?.subscription || bundle?.dashboard?.subscription || null,
+              serviceAccess: bundle?.dashboard?.serviceAccess || bundle?.analytics?.analytics?.serviceAccess || null,
+            },
+            companyId
+          );
+        }
+
+        const remote = toStoredSubscription(resolvedRemote, selectedPlan, billing);
+        if (remote) {
+          setStored(remote);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(remote));
+        } else {
+          const cached = safeReadSubscription();
+          if (cached) {
+            setStored(cached);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load subscription", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [billing, selectedPlan]);
+
+  const handlePurchase = async () => {
     if (!canPurchase) return;
 
     const now = new Date();
     const expires = billing === "MONTHLY" ? addDays(now, 30) : addDays(now, 365);
+    const companyId = await companyApi.resolveCompanyId();
 
     const prev = safeReadSubscription();
     const nextPurchaseCount = (prev?.purchaseCount ?? 0) + 1;
@@ -206,6 +273,22 @@ export default function companySubscription() {
 
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setStored(next);
+    if (companyId) {
+      const res = await companyApi.upsertCompanySubscription(companyId, {
+        planKey: selectedPlan,
+        billing,
+        expiresAt: expires.toISOString(),
+      });
+      const remote = res?.subscription || res?.serviceAccess?.subscription || res?.dashboard?.subscription || null;
+      if (remote) {
+        const synced = toStoredSubscription(remote, selectedPlan, billing);
+        if (synced) {
+          setStored(synced);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(synced));
+        }
+      }
+      syncCompanyStorage(res, companyId);
+    }
     setConfirmOpen(false);
     setInvoiceOpen(true);
   };

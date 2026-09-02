@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useParams } from "react-router-dom";
 import {
   ResponsiveContainer,
@@ -32,12 +32,67 @@ import {
   FaIdBadge,
   FaBolt,
   FaChartPie,
+  FaCalendarAlt,
+  FaShieldAlt,
+  FaRegCheckCircle,
 } from "react-icons/fa";
+import companyApi from "../../api/company.api.js";
+import { getCompanyLabel, getResolvedSubscription, loadCompanyBundle, normalizePlanKey, syncCompanyStorage } from "./companyHelpers";
 
 type PiePoint = { name: string; value: number };
 type EmpTrendPoint = { date: string; active: number; total: number; events: number };
 type SubTrendPoint = { date: string; seatsUsed: number; seatsPurchased: number; utilizationPct: number };
 type StackedPoint = { name: string; active: number; inactive: number };
+type BackendCompany = {
+  _id: string;
+  CompanyName?: string;
+  companyName?: string;
+  name?: string;
+  Contact?: string;
+  Email?: string;
+  Address?: string;
+  companyCode?: number;
+  planKey?: string;
+  planPrice?: number;
+  billingCycle?: string;
+  status?: string;
+  reviewedAt?: string | null;
+  createdAt?: string;
+  documents?: any[];
+};
+type BackendEmployee = {
+  _id?: string;
+  id?: string;
+  employeeId?: string;
+  name?: string;
+  employeeName?: string;
+  role?: string;
+  designation?: string;
+  department?: string;
+  status?: string;
+  createdAt?: string;
+};
+type BackendSubscription = {
+  planKey?: string;
+  plan?: string;
+  planPrice?: number;
+  amount?: number;
+  billing?: string;
+  billingCycle?: string;
+  status?: string;
+  startsAt?: string;
+  endsAt?: string;
+  expiresAt?: string;
+  purchasedAt?: string;
+};
+type BackendBundle = {
+  companyId: string;
+  dashboard: any;
+  analytics: any;
+  employees: any;
+  subscription: any;
+  payroll: any;
+};
 
 const AXIS_TICK = { fill: "rgba(255,255,255,0.92)", fontSize: 11 };
 const AXIS_TICK_DIM = { fill: "rgba(255,255,255,0.72)", fontSize: 10 };
@@ -52,61 +107,36 @@ const COLORS = {
   inactive: "rgba(255,255,255,0.16)",
 };
 
-function daysAgoISO(n: number) {
-  const d = new Date();
-  d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+function safeDate(value?: string | null) {
+  if (!value) return null;
+  const dt = new Date(value);
+  return Number.isNaN(dt.getTime()) ? null : dt;
 }
 
-function todayISO() {
-  return new Date().toISOString().slice(0, 10);
+function toISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }
 
-function makeSeries(fromISO: string, toISO: string, base: number, wobble: number) {
-  const start = new Date(fromISO);
-  const end = new Date(toISO);
+function planSeatLimit(planKey?: string | null) {
+  const plan = normalizePlanKey(planKey);
+  if (plan === "STARTER") return 1;
+  if (plan === "PROFESSIONAL") return 3;
+  return 999;
+}
 
-  const totalDays = Math.max(
-    14,
-    Math.min(30, Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1)
+function isHrRecord(emp: BackendEmployee) {
+  return (
+    String((emp as any)?.type || "").toUpperCase() === "HR" ||
+    String(emp.role || "").toUpperCase() === "HR" ||
+    String(emp.department || "").toUpperCase() === "HUMAN RESOURCES"
   );
-
-  const out: Array<{ date: string; count: number }> = [];
-  for (let i = 0; i < totalDays; i++) {
-    const d = new Date(start);
-    d.setDate(start.getDate() + i);
-    const date = d.toISOString().slice(0, 10);
-    const count = Math.max(
-      0,
-      Math.round(base + Math.sin(i / 2) * wobble + (Math.random() - 0.5) * wobble)
-    );
-    out.push({ date, count });
-  }
-  return out;
 }
 
-function makeEmpTrend(fromISO: string, toISO: string): EmpTrendPoint[] {
-  const total = 120;
-  const activeSeries = makeSeries(fromISO, toISO, 72, 18);
-  const eventsSeries = makeSeries(fromISO, toISO, 210, 65);
-
-  return activeSeries.map((p, i) => ({
-    date: p.date,
-    active: p.count,
-    total,
-    events: eventsSeries[i]?.count ?? 0,
-  }));
-}
-
-function makeSubscriptionTrend(fromISO: string, toISO: string): SubTrendPoint[] {
-  const seatsPurchased = 120;
-  const seatsUsedSeries = makeSeries(fromISO, toISO, 88, 10);
-
-  return seatsUsedSeries.map((p) => {
-    const seatsUsed = Math.min(seatsPurchased + 8, Math.max(0, p.count));
-    const utilizationPct = Math.round((seatsUsed / seatsPurchased) * 100);
-    return { date: p.date, seatsUsed, seatsPurchased, utilizationPct };
-  });
+function isActiveEmployee(emp: BackendEmployee) {
+  return String(emp.status || "ACTIVE").toUpperCase() === "ACTIVE";
 }
 
 function ChartCard({
@@ -157,38 +187,97 @@ function PrettyTooltip({ active, payload, label }: any) {
 export default function companyAnalyticsDashboard() {
   const { id } = useParams();
   const location = useLocation();
-
-  const companyId = String(id || "N/A");
+  const [loading, setLoading] = useState(true);
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [company, setCompany] = useState<BackendCompany | null>(null);
+  const [subscription, setSubscription] = useState<BackendSubscription | null>(null);
+  const [employeeList, setEmployeeList] = useState<BackendEmployee[]>([]);
   const companyFromState = (location.state as any)?.company;
-  const companyName = companyFromState?.CompanyName || `company `;
-
-  const from = useMemo(() => daysAgoISO(14), []);
-  const to = useMemo(() => todayISO(), []);
-
-  const empTrend = useMemo(() => makeEmpTrend(from, to), [from, to]);
-  const subTrend = useMemo(() => makeSubscriptionTrend(from, to), [from, to]);
-
-  const deptShare: PiePoint[] = useMemo(
-    () => [
-      { name: "Sales", value: 30 },
-      { name: "Support", value: 22 },
-      { name: "Engineering", value: 35 },
-      { name: "HR", value: 10 },
-      { name: "Operations", value: 18 },
-    ],
-    []
+  const [companyName, setCompanyName] = useState(
+    companyFromState?.CompanyName || localStorage.getItem("companyName") || "Company"
   );
 
-  const roleShare: PiePoint[] = useMemo(
-    () => [
-      { name: "Manager", value: 18 },
-      { name: "Executive", value: 28 },
-      { name: "Analyst", value: 16 },
-      { name: "Developer", value: 32 },
-      { name: "Intern", value: 12 },
-    ],
-    []
-  );
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const companyIdToUse = id || (await companyApi.resolveCompanyId());
+        if (!companyIdToUse) return;
+        const bundle: BackendBundle = (await loadCompanyBundle(companyIdToUse)) as any;
+        const dashboard = bundle?.dashboard || null;
+        const analyticsRes = bundle?.analytics || null;
+        const employeesRes = bundle?.employees || null;
+        const subscriptionRes = bundle?.subscription || null;
+        const serviceAccessRes = dashboard?.serviceAccess || analyticsRes?.analytics?.serviceAccess || null;
+
+        setCompany(dashboard?.company || companyFromState || null);
+        setSubscription(getResolvedSubscription({
+          dashboard,
+          subscription: subscriptionRes,
+          serviceAccess: serviceAccessRes,
+          company: dashboard?.company || companyFromState || null,
+        }));
+        const employees = Array.isArray(employeesRes?.employees)
+          ? employeesRes.employees
+          : Array.isArray(serviceAccessRes?.employees)
+          ? serviceAccessRes.employees
+          : [];
+        setEmployeeList(employees);
+
+        const nextAnalytics = analyticsRes?.analytics || dashboard || {};
+        setAnalyticsData(nextAnalytics);
+
+        const backendCompany: BackendCompany | null = dashboard?.company || companyFromState || null;
+        if (backendCompany) {
+          setCompanyName(getCompanyLabel(backendCompany, "Company"));
+        }
+        syncCompanyStorage(
+          {
+            company: backendCompany,
+            subscription: subscriptionRes,
+            serviceAccess: serviceAccessRes,
+          },
+          companyIdToUse
+        );
+      } catch (error) {
+        console.error("Failed to load analytics", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [id, companyFromState]);
+
+  const totalEmployees = employeeList.length || Number(analyticsData?.employees || 0);
+  const activeEmployees = employeeList.filter(isActiveEmployee).length || Number(analyticsData?.employees || 0);
+  const inactiveEmployees = Math.max(0, totalEmployees - activeEmployees);
+  const hrEmployees = employeeList.filter(isHrRecord);
+  const departmentsRaw = Array.isArray(analyticsData?.departments) ? analyticsData.departments : [];
+  const rolesRaw = Array.isArray(analyticsData?.roles) ? analyticsData.roles : [];
+
+  const deptShare: PiePoint[] = useMemo(() => {
+    if (departmentsRaw.length) {
+      return departmentsRaw.map((item: any) => ({ name: item.name, value: Number(item.value || 0) }));
+    }
+    const tally = new Map<string, number>();
+    employeeList.forEach((emp) => {
+      const key = String(emp.department || "General");
+      tally.set(key, (tally.get(key) || 0) + 1);
+    });
+    return Array.from(tally.entries()).map(([name, value]) => ({ name, value }));
+  }, [departmentsRaw, employeeList]);
+
+  const roleShare: PiePoint[] = useMemo(() => {
+    if (rolesRaw.length) {
+      return rolesRaw.map((item: any) => ({ name: item.name, value: Number(item.value || 0) }));
+    }
+    const tally = new Map<string, number>();
+    employeeList.forEach((emp) => {
+      const key = String(emp.role || "Employee");
+      tally.set(key, (tally.get(key) || 0) + 1);
+    });
+    return Array.from(tally.entries()).map(([name, value]) => ({ name, value }));
+  }, [rolesRaw, employeeList]);
 
   const deptBar = useMemo(() => deptShare.map((d) => ({ name: d.name, employees: d.value })), [deptShare]);
   const roleBar = useMemo(() => roleShare.map((r) => ({ name: r.name, employees: r.value })), [roleShare]);
@@ -229,8 +318,66 @@ export default function companyAnalyticsDashboard() {
     [roleShare]
   );
 
-  const latestUtil = subTrend[subTrend.length - 1]?.utilizationPct ?? 0;
+  const seatLimit = planSeatLimit(
+    subscription?.planKey ||
+      subscription?.plan ||
+      subscription?.planPrice ||
+      company?.planKey ||
+      company?.planPrice ||
+      analyticsData?.company?.planKey ||
+      analyticsData?.company?.planPrice
+  );
+  const seatsUsed = Math.max(totalEmployees, hrEmployees.length);
+  const latestUtil = seatLimit === 999 ? 100 : Math.min(100, Math.round((seatsUsed / Math.max(seatLimit, 1)) * 100));
+  const empTrend: EmpTrendPoint[] = useMemo(() => {
+    const startedAt =
+      safeDate(subscription?.startsAt) ||
+      safeDate(subscription?.purchasedAt) ||
+      safeDate(company?.reviewedAt) ||
+      safeDate(company?.createdAt) ||
+      new Date();
+    const days = 14;
+    const points: EmpTrendPoint[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(startedAt);
+      d.setDate(d.getDate() + i);
+      const date = toISODate(d);
+      points.push({
+        date,
+        active: activeEmployees,
+        total: totalEmployees,
+        events: deptShare.reduce((sum, item) => sum + Number(item.value || 0), 0),
+      });
+    }
+    return points;
+  }, [activeEmployees, totalEmployees, subscription?.startsAt, subscription?.purchasedAt, company?.reviewedAt, company?.createdAt, deptShare]);
+
+  const subTrend: SubTrendPoint[] = useMemo(() => {
+    const startedAt =
+      safeDate(subscription?.startsAt) ||
+      safeDate(subscription?.purchasedAt) ||
+      safeDate(company?.reviewedAt) ||
+      safeDate(company?.createdAt) ||
+      new Date();
+    const days = 14;
+    const points: SubTrendPoint[] = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date(startedAt);
+      d.setDate(d.getDate() + i);
+      const date = toISODate(d);
+      points.push({
+        date,
+        seatsUsed,
+        seatsPurchased: seatLimit === 999 ? seatsUsed : seatLimit,
+        utilizationPct: latestUtil,
+      });
+    }
+    return points;
+  }, [company?.createdAt, company?.reviewedAt, latestUtil, seatLimit, seatsUsed, subscription?.endsAt, subscription?.expiresAt, subscription?.purchasedAt, subscription?.startsAt]);
+
   const utilizationGauge = useMemo(() => [{ name: "Utilization", value: latestUtil }], [latestUtil]);
+
+  const companyLabel = getCompanyLabel(company || companyFromState || {}, companyName);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 text-white">
@@ -238,14 +385,52 @@ export default function companyAnalyticsDashboard() {
         {/* Header */}
         <div className="mb-8">
           <div className="text-3xl md:text-4xl font-extrabold">
-            {companyName}{" "}
+            {companyLabel}{" "}
             <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
               Analytics Charts
             </span>
           </div>
           <div className="mt-2 text-slate-200/80 text-sm">
-            Range: <span className="text-white/90 font-semibold">{from}</span> →{" "}
-            <span className="text-white/90 font-semibold">{to}</span>
+            Live backend snapshot from company, subscription, employees, payroll, and service access data.
+          </div>
+          {loading ? <div className="mt-2 text-sm text-cyan-200">Loading analytics from backend…</div> : null}
+        </div>
+
+        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+            <div className="text-slate-300 text-sm">Company Status</div>
+            <div className="mt-2 text-xl font-bold text-white inline-flex items-center gap-2">
+              <FaBuilding />
+              {String(company?.status || "UNKNOWN").toUpperCase()}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+            <div className="text-slate-300 text-sm">Subscription</div>
+            <div className="mt-2 text-xl font-bold text-white inline-flex items-center gap-2">
+              <FaShieldAlt />
+              {String((subscription?.status || (analyticsData?.subscriptionActive ? "ACTIVE" : "INACTIVE")) as string).toUpperCase()}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+            <div className="text-slate-300 text-sm">HR Seats Used</div>
+            <div className="mt-2 text-xl font-bold text-white inline-flex items-center gap-2">
+              <FaUserTie />
+              {hrEmployees.length}
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+            <div className="text-slate-300 text-sm">Employee Status</div>
+            <div className="mt-2 text-xl font-bold text-white inline-flex items-center gap-2">
+              <FaRegCheckCircle />
+              {activeEmployees} active / {inactiveEmployees} inactive
+            </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+            <div className="text-slate-300 text-sm">Plan Seats</div>
+            <div className="mt-2 text-xl font-bold text-white inline-flex items-center gap-2">
+              <FaCalendarAlt />
+              {seatLimit === 999 ? "Unlimited" : seatLimit}
+            </div>
           </div>
         </div>
 
@@ -523,6 +708,21 @@ export default function companyAnalyticsDashboard() {
                 </ResponsiveContainer>
               </div>
             </ChartCard>
+          </div>
+
+          <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="text-white font-semibold">Backend sources in use</div>
+                <div className="text-sm text-slate-300">
+                  Company, subscription, employees, roles, departments, service access, and payroll.
+                </div>
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-500/10 px-3 py-1 text-emerald-100 text-xs font-semibold">
+                <FaRegCheckCircle />
+                Synced from backend
+              </div>
+            </div>
           </div>
         </div>
       </div>

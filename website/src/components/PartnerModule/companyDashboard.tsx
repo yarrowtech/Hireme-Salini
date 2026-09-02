@@ -1,4 +1,5 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+// src/pages/company/CompanyDashboard.tsx
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   FaBuilding,
   FaEnvelope,
@@ -8,17 +9,16 @@ import {
   FaUsers,
   FaUserTie,
   FaPlus,
-  FaTrash,
   FaChartLine,
   FaArrowUp,
   FaArrowDown,
   FaChevronRight,
   FaCrown,
   FaShieldAlt,
-  FaTimes,
   FaCheckCircle,
   FaExclamationTriangle,
   FaBed,
+  FaFilePdf,
 } from "react-icons/fa";
 
 import {
@@ -34,10 +34,54 @@ import {
   Legend,
 } from "recharts";
 
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import companyApi from "../../api/company.api.js";
+import { toast } from "react-toastify";
+import HrDetailPanel from "./HrDetailPanel";
+import {
+  getCompanyLabel,
+  getResolvedPlanPrice,
+  getResolvedSubscription,
+  loadCompanyBundle,
+  normalizePlanKey,
+  syncCompanyStorage,
+} from "./companyHelpers";
+
 /** -----------------------------
  * Types
  ------------------------------*/
 type Plan = "Starter" | "Professional" | "Enterprise";
+type CompanyStatusUI = "active" | "pending" | "inactive";
+
+type BackendCompany = {
+  _id: string;
+  CompanyName: string;
+  Contact: string;
+  Email: string;
+  Address: string;
+  CIN: string;
+  PAN_No: string;
+
+  planKey: "STARTER" | "PROFESSIONAL" | "ENTERPRISE";
+  billingCycle: "MONTHLY" | "YEARLY";
+  planPrice?: number | null;
+
+  companyCode: number;
+  documents: Array<{
+    key: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    path: string;
+  }>;
+
+  status: "PENDING" | "APPROVED" | "REJECTED";
+  reviewedAt?: string | null;
+  rejectReason?: string | null;
+
+  createdAt: string;
+  updatedAt: string;
+};
 
 type Company = {
   id: string;
@@ -46,12 +90,20 @@ type Company = {
   location: string;
   email: string;
   phone: string;
-  status: "active" | "pending" | "inactive";
+  status: CompanyStatusUI;
 
   subscriptionPlan: Plan;
   planAmount: number;
   planFrom: string;
   planTo: string;
+
+  companyCode?: number;
+  cin?: string;
+  pan?: string;
+
+  billingCycle?: "MONTHLY" | "YEARLY";
+  documents?: BackendCompany["documents"];
+  subscriptionActive: boolean;
 };
 
 type HRUser = {
@@ -59,7 +111,12 @@ type HRUser = {
   name: string;
   email: string;
   phone: string;
+  username: string;
+  status: "ACTIVE" | "INACTIVE";
   createdAt: string;
+  hasLogin?: boolean;
+  loginUpdatedAt?: string | null;
+  passwordUpdatedAt?: string | null;
 };
 
 type Employee = {
@@ -91,14 +148,126 @@ type AnalyticsRow = {
   attendance: number;
 };
 
+type SubscriptionMeta = {
+  planKey: string;
+  billing: string;
+  status: string;
+  startsAt: string;
+  expiresAt: string;
+};
+
 /** -----------------------------
  * Utils
  ------------------------------*/
-const cn = (...a: Array<string | false | undefined | null>) =>
-  a.filter(Boolean).join(" ");
+const cn = (...a: Array<string | false | undefined | null>) => a.filter(Boolean).join(" ");
+const fmtINR = (n: number) => Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
 
-const fmtINR = (n: number) =>
-  Number(n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
+function safeDate(d: any) {
+  if (!d) return null;
+  const dt = new Date(d);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+function toISODate(d: Date) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+}
+function addMonthsSafe(date: Date, months: number) {
+  const d = new Date(date);
+  const day = d.getDate();
+  d.setMonth(d.getMonth() + months);
+  if (d.getDate() !== day) d.setDate(0);
+  return d;
+}
+function addYearsSafe(date: Date, years: number) {
+  const d = new Date(date);
+  const month = d.getMonth();
+  d.setFullYear(d.getFullYear() + years);
+  if (d.getMonth() !== month) d.setDate(0);
+  return d;
+}
+function formatDisplayDate(value?: string | null) {
+  if (!value || value === "-") return "-";
+  const dt = new Date(value);
+  if (Number.isNaN(dt.getTime())) return "-";
+  return dt.toLocaleDateString("en-IN", { year: "numeric", month: "short", day: "numeric" });
+}
+function backendPlanToUI(planKey: BackendCompany["planKey"]): Plan {
+  if (planKey === "PROFESSIONAL") return "Professional";
+  if (planKey === "ENTERPRISE") return "Enterprise";
+  return "Starter";
+}
+function backendStatusToUI(status: BackendCompany["status"]): CompanyStatusUI {
+  if (status === "APPROVED") return "active";
+  if (status === "PENDING") return "pending";
+  return "inactive";
+}
+
+function isHrServiceRecord(emp: any) {
+  return (
+    emp?.type === "HR" ||
+    String(emp?.role || "").toUpperCase() === "HR" ||
+    String(emp?.department || "").toUpperCase() === "HUMAN RESOURCES"
+  );
+}
+
+function normalizeHrRecord(emp: any, fallbackCreatedAt = ""): HRUser {
+  return {
+    id: String(emp?.id || emp?.employeeId || emp?._id || `hr-${Date.now()}`),
+    name: String(emp?.name || emp?.employeeName || "HR"),
+    email: String(emp?.email || emp?.contact || "-"),
+    phone: String(emp?.phone || "-"),
+    username: String(emp?.username || "-"),
+    status: String(emp?.status || "ACTIVE").toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE",
+    hasLogin: Boolean(emp?.hasLogin || emp?.userId || String(emp?.username || "").trim()),
+    loginUpdatedAt: emp?.loginUpdatedAt || null,
+    passwordUpdatedAt: emp?.passwordUpdatedAt || null,
+    createdAt: emp?.createdAt
+      ? new Date(emp.createdAt).toISOString().slice(0, 10)
+      : fallbackCreatedAt
+      ? new Date(fallbackCreatedAt).toISOString().slice(0, 10)
+      : "-",
+  };
+}
+
+function normalizeEmployeeRecord(emp: any, index: number): Employee {
+  return {
+    id: String(emp?._id || emp?.id || `${emp?.employeeId || "emp"}-${index}`),
+    employeeId: String(emp?.employeeId || `EMP-${index + 1}`),
+    name: String(emp?.name || emp?.employeeName || "Employee"),
+    department: String(emp?.department || "General"),
+    role: String(emp?.designation || emp?.role || "Employee"),
+    salary: Number(emp?.salary || emp?.netPay || 0),
+    email: String(emp?.email || emp?.contact || "-"),
+    phone: String(emp?.phone || "-"),
+    joinDate: emp?.createdAt ? new Date(emp.createdAt).toISOString().slice(0, 10) : "-",
+    status: String(emp?.status || "active").toLowerCase() as Employee["status"],
+  };
+}
+
+/**
+ * backend doesn't store planFrom/planTo
+ * start = reviewedAt (if APPROVED) else createdAt
+ * end   = start + (MONTHLY => 1 month, YEARLY => 1 year)
+ */
+function computePlanDates(row: BackendCompany) {
+  const startRaw =
+    row?.status === "APPROVED" ? row?.reviewedAt || row?.createdAt : row?.createdAt;
+
+  const startDt = safeDate(startRaw) || safeDate(row?.createdAt);
+  const startISO = startDt ? toISODate(startDt) : "";
+
+  const bc = row?.billingCycle === "YEARLY" ? "YEARLY" : "MONTHLY";
+  const endDt = startDt
+    ? bc === "YEARLY"
+      ? addYearsSafe(startDt, 1)
+      : addMonthsSafe(startDt, 1)
+    : null;
+
+  const endISO = endDt ? toISODate(endDt) : "";
+  return { startISO, endISO };
+}
 
 function Pill({
   label,
@@ -116,12 +285,7 @@ function Pill({
   } as const;
 
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold",
-        map[tone]
-      )}
-    >
+    <span className={cn("inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold", map[tone])}>
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" />
       {label}
     </span>
@@ -149,19 +313,15 @@ function StatCard({
       onClick={onClick}
       className={cn(
         "relative w-full text-left overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition",
-        onClick &&
-          "hover:bg-white/10 hover:border-cyan-500/30 hover:-translate-y-[1px] active:translate-y-0"
+        onClick && "hover:bg-white/10 hover:border-cyan-500/30 hover:-translate-y-[1px] active:translate-y-0"
       )}
     >
       <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-purple-500/20 blur-2xl" />
-
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div>
             <div className="text-sm text-slate-300">{title}</div>
-            <div className="mt-2 text-3xl font-extrabold text-white">
-              {value}
-            </div>
+            <div className="mt-2 text-3xl font-extrabold text-white">{value}</div>
 
             {(delta || deltaLabel) && (
               <div className="mt-3 flex items-center gap-2 text-xs text-slate-300">
@@ -188,17 +348,12 @@ function StatCard({
           </div>
         </div>
 
-        {onClick && (
-          <div className="mt-4 text-xs text-cyan-200/80 font-semibold">
-            Click to open →
-          </div>
-        )}
+        {onClick && <div className="mt-4 text-xs text-cyan-200/80 font-semibold">Click to open →</div>}
       </div>
     </button>
   );
 }
 
-/** ✅ FIXED PANEL (NO CLICK ISSUE) */
 function Panel({
   title,
   right,
@@ -212,16 +367,28 @@ function Panel({
     <div className="relative rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div className="text-lg font-bold text-white">{title}</div>
-
-        {/* IMPORTANT FIX: right element must not block clicks */}
-        {right && (
-          <div className="shrink-0 pointer-events-none select-none">
-            {right}
-          </div>
-        )}
+        {right && <div className="shrink-0 pointer-events-none select-none">{right}</div>}
       </div>
-
       <div className="relative z-10">{children}</div>
+    </div>
+  );
+}
+
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+      <span className="text-slate-300 inline-flex items-center gap-2">
+        {icon} {label}
+      </span>
+      <span className="font-semibold text-white text-right">{value}</span>
     </div>
   );
 }
@@ -229,142 +396,290 @@ function Panel({
 /** -----------------------------
  * MAIN
  ------------------------------*/
-export default function companyDashboardOneCompany() {
+export default function CompanyDashboardOneCompany() {
   type Page = "dashboard" | "hr" | "employees";
-  const [page, setPage] = useState<Page>("dashboard");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const resolvePage = (pathname: string): Page => (pathname.includes("/company/hr") ? "hr" : "dashboard");
+  const [page, setPage] = useState<Page>(() => resolvePage(location.pathname));
 
-  /** COMPANY */
+  useEffect(() => {
+    setPage(resolvePage(location.pathname));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  // ✅ FIX: accept multiple possible param names
+  const params = useParams();
+  const requestId =
+    (params as any)?.requestId ||
+    (params as any)?.id ||
+    (params as any)?.requestID ||
+    "";
+
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string>("");
+
   const [company, setCompany] = useState<Company>({
-    id: "c1",
-    name: "TechCorp Solutions",
-    industry: "IT Services",
-    location: "Mumbai",
-    email: "hr@techcorp.com",
-    phone: "+91 90000 10001",
-    status: "active",
+    id: "",
+    name: "Loading…",
+    industry: "-",
+    location: "-",
+    email: "-",
+    phone: "-",
+    status: "pending",
     subscriptionPlan: "Starter",
-    planAmount: 999,
-    planFrom: "2026-01-01",
-    planTo: "2026-12-31",
+    planAmount: 0,
+    planFrom: "-",
+    planTo: "-",
+    subscriptionActive: false,
   });
 
-  /** EMPLOYEES */
-  const employeesData: Employee[] = [
-    {
-      id: "e1",
-      employeeId: "EMP001",
-      name: "Rajesh Kumar",
-      department: "Tech",
-      role: "Developer",
-      salary: 65000,
-      email: "rajesh.k@techcorp.com",
-      phone: "+91 98765 43210",
-      joinDate: "2023-01-15",
-      status: "active",
-    },
-    {
-      id: "e2",
-      employeeId: "EMP002",
-      name: "Sneha Roy",
-      department: "HR",
-      role: "HR Executive",
-      salary: 45000,
-      email: "sneha.roy@techcorp.com",
-      phone: "+91 98765 43211",
-      joinDate: "2023-02-20",
-      status: "active",
-    },
-    {
-      id: "e3",
-      employeeId: "EMP003",
-      name: "Amit Patel",
-      department: "Operations",
-      role: "Manager",
-      salary: 85000,
-      email: "amit.p@techcorp.com",
-      phone: "+91 98765 43212",
-      joinDate: "2022-11-10",
-      status: "active",
-    },
-    {
-      id: "e4",
-      employeeId: "EMP004",
-      name: "Meera Nair",
-      department: "Support",
-      role: "Support",
-      salary: 28000,
-      email: "meera.n@techcorp.com",
-      phone: "+91 98765 43213",
-      joinDate: "2023-05-20",
-      status: "on-leave",
-    },
-    {
-      id: "e5",
-      employeeId: "EMP005",
-      name: "Rohit Verma",
-      department: "Sales",
-      role: "Sales Rep",
-      salary: 42000,
-      email: "rohit.v@techcorp.com",
-      phone: "+91 98765 43214",
-      joinDate: "2023-06-10",
-      status: "active",
-    },
-  ];
+  const [hrUsers, setHrUsers] = useState<HRUser[]>([]);
+  const [detailHrId, setDetailHrId] = useState<string | null>(null);
+  const [employeesData, setEmployeesData] = useState<Employee[]>([]);
+  const [attendanceMap, setAttendanceMap] = useState<Record<string, EmployeeAttendance>>({});
+  const [analytics, setAnalytics] = useState<AnalyticsRow[]>([]);
+  const [liveSubscriptionActive, setLiveSubscriptionActive] = useState(false);
+  const [subscriptionMeta, setSubscriptionMeta] = useState<SubscriptionMeta | null>(null);
 
-  /** EMPLOYEE ATTENDANCE */
-  const [attendanceMap] = useState<Record<string, EmployeeAttendance>>({
-    EMP001: { employeeId: "EMP001", present: 22, absent: 2, leave: 1, totalDays: 25 },
-    EMP002: { employeeId: "EMP002", present: 23, absent: 1, leave: 1, totalDays: 25 },
-    EMP003: { employeeId: "EMP003", present: 20, absent: 3, leave: 2, totalDays: 25 },
-    EMP004: { employeeId: "EMP004", present: 18, absent: 4, leave: 3, totalDays: 25 },
-    EMP005: { employeeId: "EMP005", present: 21, absent: 2, leave: 2, totalDays: 25 },
-  });
+  const refreshCompanyBundle = useCallback(async () => {
+    try {
+      setLoading(true);
+      setLoadError("");
 
-  const attendanceOf = useCallback(
-    (employeeId: string) => {
-      return (
-        attendanceMap[employeeId] || {
-          employeeId,
-          present: 0,
-          absent: 0,
-          leave: 0,
-          totalDays: 0,
+      let row: BackendCompany | null = null;
+      let bundleCompanyId = await companyApi.resolveCompanyId();
+
+      if (bundleCompanyId) {
+        const sessionBundle = await loadCompanyBundle(bundleCompanyId);
+        const sessionDashboard = sessionBundle?.dashboard || null;
+        if (sessionDashboard?.company) {
+          row = sessionDashboard.company as BackendCompany;
         }
+        if (!row?._id && sessionBundle?.companyId) {
+          bundleCompanyId = sessionBundle.companyId;
+        }
+      }
+
+      if (!row?._id) {
+        if (requestId) {
+          const res = await companyApi.getRequestById(requestId);
+          row = (res?.request || null) as BackendCompany | null;
+        } else {
+          const rawUser =
+            localStorage.getItem("user") ||
+            localStorage.getItem("authUser") ||
+            localStorage.getItem("currentUser") ||
+            "";
+
+          let email = "";
+          try {
+            const parsed = rawUser ? JSON.parse(rawUser) : null;
+            email = parsed?.Email || parsed?.email || parsed?.user?.Email || parsed?.user?.email || "";
+          } catch {
+            email = "";
+          }
+
+          if (email) {
+            const res = await companyApi.listMyRequests({ email });
+            const list = (res?.requests || []) as BackendCompany[];
+            row = list?.[0] || null;
+          }
+        }
+      }
+
+      if (!row?._id) {
+        setLoadError(requestId ? "Company not found for this requestId." : "No company request found for the logged-in user.");
+        return;
+      }
+
+      const bundle = await loadCompanyBundle(bundleCompanyId || row._id);
+      const dashboardRes = bundle?.dashboard || null;
+      const analyticsRes = bundle?.analytics || null;
+      const payrollRes = bundle?.payroll || null;
+      const employeesRes = bundle?.employees || null;
+      const hrAccessRes = bundle?.hrAccess || dashboardRes?.hrAccess || analyticsRes?.analytics?.hrAccess || null;
+      const subscription = getResolvedSubscription({
+        dashboard: dashboardRes,
+        subscription: bundle?.subscription,
+        serviceAccess: dashboardRes?.serviceAccess || analyticsRes?.analytics?.serviceAccess || null,
+        company: dashboardRes?.company || row,
+      });
+
+      const resolvedPlanKey = normalizePlanKey(
+        subscription?.planKey ||
+          subscription?.plan ||
+          subscription?.planPrice ||
+          subscription?.amount ||
+          dashboardRes?.company?.planKey ||
+          dashboardRes?.company?.planPrice ||
+          row.planKey ||
+          row.planPrice
       );
+      const resolvedBilling = String(subscription?.billing || dashboardRes?.company?.billingCycle || row.billingCycle || "MONTHLY").toUpperCase();
+      const resolvedPlanAmount = Number(
+        getResolvedPlanPrice(
+          {
+            dashboard: dashboardRes,
+            subscription: bundle?.subscription,
+            serviceAccess: dashboardRes?.serviceAccess || analyticsRes?.analytics?.serviceAccess || null,
+            company: dashboardRes?.company || row,
+          },
+          resolvedPlanKey,
+          resolvedBilling
+        ) || subscription?.planPrice || dashboardRes?.company?.planPrice || row.planPrice
+      );
+
+      setSubscriptionMeta(
+        subscription
+          ? {
+              planKey: resolvedPlanKey,
+              billing: resolvedBilling,
+              status: String(subscription.status || dashboardRes?.subscription?.status || "ACTIVE").toUpperCase(),
+              startsAt:
+                subscription.startsAt ||
+                subscription.purchasedAt ||
+                subscription.createdAt ||
+                row.reviewedAt ||
+                row.createdAt ||
+                "",
+              expiresAt: subscription.expiresAt || subscription.endsAt || "",
+            }
+          : null
+      );
+
+      const fallbackDates = computePlanDates(row);
+      const startDt =
+        safeDate(subscription?.startsAt) ||
+        safeDate(subscription?.purchasedAt) ||
+        safeDate(row?.reviewedAt) ||
+        safeDate(row?.createdAt);
+      const endDt = safeDate(subscription?.expiresAt) || safeDate(subscription?.endsAt);
+      const startISO = startDt ? toISODate(startDt) : fallbackDates.startISO;
+      const endISO = endDt ? toISODate(endDt) : fallbackDates.endISO;
+
+      const employees = Array.isArray(employeesRes?.employees)
+        ? employeesRes.employees
+        : Array.isArray(dashboardRes?.serviceAccess?.employees)
+        ? dashboardRes.serviceAccess.employees
+        : Array.isArray(analyticsRes?.analytics?.serviceAccess?.employees)
+        ? analyticsRes.analytics.serviceAccess.employees
+        : [];
+      const payrollRows = Array.isArray(payrollRes?.payroll?.rows) ? payrollRes.payroll.rows : [];
+      const analyticRows = Array.isArray(analyticsRes?.analytics?.departments)
+        ? analyticsRes.analytics.departments.map((item: any, index: number) => ({
+            id: `${item.name}-${index}`,
+            department: item.name,
+            employees: Number(item.value || 0),
+            payroll: payrollRows.reduce((sum: number, row: any) => sum + Number(row.netPay || 0), 0),
+            attendance: 0,
+          }))
+        : [];
+
+      const backendCompanyRow = dashboardRes?.company || row;
+      const backendSubscriptionActive = Boolean(
+        dashboardRes?.subscriptionActive ??
+          (String(subscription?.status || "").toUpperCase() === "ACTIVE" &&
+            (!subscription?.expiresAt || new Date(String(subscription.expiresAt)).getTime() >= Date.now()))
+      );
+
+      setCompany({
+        id: row._id,
+        name: getCompanyLabel(backendCompanyRow, "Company"),
+        industry: "-",
+        location: backendCompanyRow?.Address || row.Address || "-",
+        email: backendCompanyRow?.Email || row.Email || "-",
+        phone: backendCompanyRow?.Contact || row.Contact || "-",
+        status: backendStatusToUI(row.status),
+        subscriptionActive: backendSubscriptionActive,
+        subscriptionPlan: backendPlanToUI(resolvedPlanKey as BackendCompany["planKey"]),
+        planAmount: resolvedPlanAmount,
+        planFrom: startISO || "-",
+        planTo: endISO || "-",
+        companyCode: backendCompanyRow?.companyCode || row.companyCode,
+        cin: backendCompanyRow?.CIN || row.CIN,
+        pan: backendCompanyRow?.PAN_No || row.PAN_No,
+        billingCycle: backendCompanyRow?.billingCycle || row.billingCycle,
+        documents: backendCompanyRow?.documents || row.documents || [],
+      });
+      setLiveSubscriptionActive(backendSubscriptionActive);
+      syncCompanyStorage(
+        {
+          company: backendCompanyRow,
+          subscription: bundle?.subscription || dashboardRes?.subscription || null,
+          serviceAccess: dashboardRes?.serviceAccess || analyticsRes?.analytics?.serviceAccess || null,
+        },
+        row._id
+      );
+      setAnalytics(analyticRows);
+
+      const serviceAccessEmployees = Array.isArray(dashboardRes?.serviceAccess?.employees)
+        ? dashboardRes.serviceAccess.employees
+        : Array.isArray(analyticsRes?.analytics?.serviceAccess?.employees)
+        ? analyticsRes.analytics.serviceAccess.employees
+        : [];
+      const staffEntries = employees.filter((emp: any) => !isHrServiceRecord(emp));
+      const hrEntries = Array.isArray(hrAccessRes?.hrAccounts) ? hrAccessRes.hrAccounts : serviceAccessEmployees.filter(isHrServiceRecord);
+
+      setEmployeesData(staffEntries.map(normalizeEmployeeRecord));
+      setAttendanceMap({});
+      setHrUsers(hrEntries.map((emp: any) => normalizeHrRecord(emp, row.createdAt || "")));
+    } catch (e: any) {
+      console.error("❌ Company dashboard load error:", e);
+
+      const msg =
+        e?.response?.data?.message ||
+        (typeof e?.response?.data === "string" ? e.response.data : "") ||
+        e?.message ||
+        "Failed to load company data";
+
+      setLoadError(msg);
+    } finally {
+      setLoading(false);
+    }
+  }, [requestId]);
+
+  /** ✅ Fetch ONLY company from backend */
+  useEffect(() => {
+    refreshCompanyBundle();
+  }, [refreshCompanyBundle]);
+
+  /** ✅ Docs URL helper */
+  const docUrl = useCallback(
+    (docKey: string) => {
+      if (!company?.id) return "#";
+      return companyApi.getDocUrl(company.id, docKey);
     },
+    [company?.id]
+  );
+
+  /** Attendance helpers (mock) */
+  const attendanceOf = useCallback(
+    (employeeId: string) =>
+      attendanceMap[employeeId] || { employeeId, present: 0, absent: 0, leave: 0, totalDays: 0 },
     [attendanceMap]
   );
 
-  const attendancePct = (a: EmployeeAttendance) => {
-    if (!a.totalDays) return 0;
-    return Math.round((a.present / a.totalDays) * 100);
-  };
+  const attendancePct = (a: EmployeeAttendance) => (!a.totalDays ? 0 : Math.round((a.present / a.totalDays) * 100));
 
-  /** PLAN -> HR LIMIT */
+  /** Plan -> HR LIMIT (works using REAL plan) */
+  const effectivePlanKey = normalizePlanKey(subscriptionMeta?.planKey || company.subscriptionPlan);
   const planHrLimit = useMemo(() => {
-    if (company.subscriptionPlan === "Starter") return 1;
-    if (company.subscriptionPlan === "Professional") return 3;
+    if (effectivePlanKey === "STARTER") return 1;
+    if (effectivePlanKey === "PROFESSIONAL") return 3;
     return 999;
-  }, [company.subscriptionPlan]);
+  }, [effectivePlanKey]);
 
-  const [enterpriseCustomLimit, setEnterpriseCustomLimit] = useState<number>(8);
+  const finalHrLimit = planHrLimit;
+  const limitReached = hrUsers.length >= finalHrLimit;
+  const effectiveSubscriptionActive = Boolean(
+    company.subscriptionActive ||
+      liveSubscriptionActive ||
+      (String(subscriptionMeta?.status || "").toUpperCase() === "ACTIVE" &&
+        (!subscriptionMeta?.expiresAt || new Date(String(subscriptionMeta.expiresAt)).getTime() >= Date.now()))
+  );
 
-  const finalHrLimit =
-    company.subscriptionPlan === "Enterprise" ? enterpriseCustomLimit : planHrLimit;
-
-  /** HR USERS */
-  const [hrUsers, setHrUsers] = useState<HRUser[]>([
-    {
-      id: "hr1",
-      name: "Priya Sharma",
-      email: "priya.hr@techcorp.com",
-      phone: "+91 98765 00001",
-      createdAt: "2026-02-01",
-    },
-  ]);
-
-  /** ADD HR FORM */
+  /** HR add/delete (mock only) */
   const [hrName, setHrName] = useState("");
   const [hrEmail, setHrEmail] = useState("");
   const [hrPhone, setHrPhone] = useState("");
@@ -374,24 +689,18 @@ export default function companyDashboardOneCompany() {
   const hrEmailRef = useRef<HTMLInputElement | null>(null);
   const hrPhoneRef = useRef<HTMLInputElement | null>(null);
 
-  const limitReached = hrUsers.length >= finalHrLimit;
-
   const isValidEmail = (v: string) => /^\S+@\S+\.\S+$/.test(v.trim());
   const isValidPhone = (v: string) => v.replace(/\D/g, "").length >= 10;
 
-  /** addHR */
   const addHR = useCallback(() => {
     setHrError("");
 
-    if (company.status !== "active") {
+    if (!effectiveSubscriptionActive) {
       setHrError("Your subscription is not active. Please renew or upgrade plan.");
       return;
     }
-
     if (limitReached) {
-      setHrError(
-        `HR limit reached! Your plan allows only ${finalHrLimit} HR accounts. Please upgrade plan.`
-      );
+      setHrError(`HR limit reached! Your plan allows only ${finalHrLimit} HR accounts. Please upgrade plan.`);
       return;
     }
 
@@ -399,57 +708,45 @@ export default function companyDashboardOneCompany() {
     const e = hrEmail.trim().toLowerCase();
     const p = hrPhone.trim();
 
-    if (!n) {
-      setHrError("HR Name is required.");
-      hrNameRef.current?.focus();
-      return;
-    }
-
-    if (!e || !isValidEmail(e)) {
-      setHrError("Please enter a valid HR email.");
-      hrEmailRef.current?.focus();
-      return;
-    }
-
-    if (!p || !isValidPhone(p)) {
-      setHrError("Please enter a valid phone number.");
-      hrPhoneRef.current?.focus();
-      return;
-    }
+    if (!n) return (setHrError("HR Name is required."), hrNameRef.current?.focus());
+    if (!e || !isValidEmail(e)) return (setHrError("Please enter a valid HR email."), hrEmailRef.current?.focus());
+    if (!p || !isValidPhone(p)) return (setHrError("Please enter a valid phone number."), hrPhoneRef.current?.focus());
 
     const exists = hrUsers.some((x) => x.email.toLowerCase() === e);
-    if (exists) {
-      setHrError("This HR email already exists.");
-      hrEmailRef.current?.focus();
-      return;
-    }
+    if (exists) return (setHrError("This HR email already exists."), hrEmailRef.current?.focus());
 
-    const newHR: HRUser = {
-      id: `hr_${Date.now()}`,
-      name: n,
-      email: e,
-      phone: p,
-      createdAt: new Date().toISOString().slice(0, 10),
-    };
+    (async () => {
+      try {
+        const payload = {
+          id: `HR-${Date.now()}`,
+          companyCode: String(company.companyCode || ""),
+          name: n,
+          role: "HR",
+          department: "Human Resources",
+          email: e,
+          phone: p,
+          contact: e,
+          status: "ACTIVE",
+        };
+        await companyApi.upsertCompanyHrAccount(company.id, payload);
+        await refreshCompanyBundle();
+        toast.success("HR account added. Open its details to set up a login and assign employees.");
+        setHrName("");
+        setHrEmail("");
+        setHrPhone("");
+        setTimeout(() => hrNameRef.current?.focus(), 50);
+      } catch (error: any) {
+        console.error("Failed to add HR account", error);
+        setHrError(error?.response?.data?.message || "Failed to save HR account. Please try again.");
+        toast.error("Failed to save HR account");
+      }
+    })();
+  }, [effectiveSubscriptionActive, limitReached, finalHrLimit, hrName, hrEmail, hrPhone, hrUsers, company.id, company.companyCode, refreshCompanyBundle]);
 
-    setHrUsers((prev) => [newHR, ...prev]);
-
-    setHrName("");
-    setHrEmail("");
-    setHrPhone("");
-
-    setTimeout(() => hrNameRef.current?.focus(), 50);
-  }, [company.status, limitReached, finalHrLimit, hrName, hrEmail, hrPhone, hrUsers]);
-
-  const deleteHR = useCallback((id: string) => {
-    setHrUsers((p) => p.filter((x) => x.id !== id));
-    setHrError("");
-  }, []);
 
   const handleHRKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>, field: "name" | "email" | "phone") => {
       if (e.key !== "Enter") return;
-
       if (field === "name") hrEmailRef.current?.focus();
       if (field === "email") hrPhoneRef.current?.focus();
       if (field === "phone") addHR();
@@ -457,80 +754,43 @@ export default function companyDashboardOneCompany() {
     [addHR]
   );
 
-  /** Analytics */
-  const analytics: AnalyticsRow[] = [
-    { id: "a1", department: "Tech", employees: 18, payroll: 980000, attendance: 92 },
-    { id: "a2", department: "Operations", employees: 10, payroll: 520000, attendance: 88 },
-    { id: "a3", department: "Sales", employees: 8, payroll: 280000, attendance: 90 },
-    { id: "a4", department: "Support", employees: 9, payroll: 320000, attendance: 94 },
-  ];
+  const openDashboard = useCallback(() => {
+    navigate("/company/dashboard");
+    setPage("dashboard");
+  }, [navigate]);
 
+  const openHrManagement = useCallback(() => {
+    navigate("/company/hr");
+    setPage("hr");
+  }, [navigate]);
+
+  /** Totals + charts (mock analytics) */
   const totals = useMemo(() => {
     const employees = analytics.reduce((s, r) => s + r.employees, 0);
     const payroll = analytics.reduce((s, r) => s + r.payroll, 0);
-    const avgAttendance = analytics.length
-      ? Math.round(analytics.reduce((s, r) => s + r.attendance, 0) / analytics.length)
-      : 0;
+    const avgAttendance = analytics.length ? Math.round(analytics.reduce((s, r) => s + r.attendance, 0) / analytics.length) : 0;
     return { employees, payroll, avgAttendance };
   }, [analytics]);
 
-  /** Attendance Summary */
   const attendanceSummary = useMemo(() => {
     const list = employeesData.map((e) => attendanceOf(e.employeeId));
     const totalDays = list.reduce((s, a) => s + (a.totalDays || 0), 0);
     const present = list.reduce((s, a) => s + (a.present || 0), 0);
     const absent = list.reduce((s, a) => s + (a.absent || 0), 0);
     const leave = list.reduce((s, a) => s + (a.leave || 0), 0);
-
     const pct = totalDays ? Math.round((present / totalDays) * 100) : 0;
-
     return { totalDays, present, absent, leave, pct };
   }, [employeesData, attendanceOf]);
 
-  /** Upgrade Modal */
-  const [upgradeOpen, setUpgradeOpen] = useState(false);
-  const [upgradePlan, setUpgradePlan] = useState<Plan>("Professional");
-
-  const planCatalog = useMemo(() => {
-    return [
-      { plan: "Starter" as const, amount: 999, hr: 1 },
-      { plan: "Professional" as const, amount: 9999, hr: 3 },
-      { plan: "Enterprise" as const, amount: 24999, hr: "Custom" },
-    ];
-  }, []);
-
-  const applyUpgrade = useCallback(() => {
-    const selected = planCatalog.find((p) => p.plan === upgradePlan);
-    if (!selected) return;
-
-    setCompany((prev) => ({
-      ...prev,
-      subscriptionPlan: selected.plan,
-      planAmount: selected.amount,
-      status: "active",
-      planFrom: new Date().toISOString().slice(0, 10),
-      planTo: "2026-12-31",
-    }));
-
-    setUpgradeOpen(false);
-    setHrError("");
-  }, [planCatalog, upgradePlan]);
-
-  /** Charts */
-  const departmentAttendanceChart = useMemo(() => {
-    return analytics.map((r) => ({
-      department: r.department,
-      attendance: r.attendance,
-    }));
-  }, [analytics]);
+  const departmentAttendanceChart = useMemo(
+    () => analytics.map((r) => ({ department: r.department, attendance: r.attendance })),
+    [analytics]
+  );
 
   const employeeAttendanceChart = useMemo(() => {
     return employeesData.map((e) => {
       const a = attendanceOf(e.employeeId);
-      return {
-        name: e.name.split(" ")[0],
-        attendance: attendancePct(a),
-      };
+      return { name: e.name.split(" ")[0] || e.name, attendance: attendancePct(a) };
     });
   }, [employeesData, attendanceOf]);
 
@@ -539,6 +799,22 @@ export default function companyDashboardOneCompany() {
    ------------------------------*/
   const DashboardPage = () => (
     <div className="space-y-6">
+      {(loading || loadError) && (
+        <div
+          className={cn(
+            "rounded-3xl border p-4",
+            loadError ? "border-rose-500/30 bg-rose-500/10 text-rose-200" : "border-white/10 bg-white/5 text-slate-200"
+          )}
+        >
+          {loading ? "Loading company data from backend…" : loadError}
+          {!loading && loadError && (
+            <div className="mt-2 text-xs text-slate-200/80">
+              Debug tips: Open DevTools → Console and Network, check what URL is being called and the status code.
+            </div>
+          )}
+        </div>
+      )}
+
       {/* TOP COMPANY */}
       <div className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-white/10 p-8 backdrop-blur-xl">
         <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-cyan-500/20 blur-3xl" />
@@ -561,28 +837,11 @@ export default function companyDashboardOneCompany() {
                       <FaMapMarkerAlt /> {company.location}
                     </span>
                   </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Pill
-                      label={company.status.toUpperCase()}
-                      tone={
-                        company.status === "active"
-                          ? "success"
-                          : company.status === "pending"
-                          ? "warning"
-                          : "inactive"
-                      }
-                    />
-                    <Pill label={`Plan: ${company.subscriptionPlan}`} tone="info" />
-                    <Pill label={`₹${fmtINR(company.planAmount)}`} tone="success" />
-                    <Pill label={`From: ${company.planFrom}`} tone="inactive" />
-                    <Pill label={`To: ${company.planTo}`} tone="inactive" />
-                  </div>
                 </div>
               </div>
 
               <button
-                onClick={() => setPage("hr")}
+                onClick={openHrManagement}
                 className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
               >
                 <FaShieldAlt />
@@ -592,72 +851,70 @@ export default function companyDashboardOneCompany() {
             </div>
 
             {/* DETAILS */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-                <div className="text-white font-bold mb-3">Company Full Details</div>
-
-                <div className="space-y-3 text-sm">
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <span className="text-slate-300 inline-flex items-center gap-2">
-                      <FaEnvelope /> Email
-                    </span>
-                    <span className="font-semibold text-white">{company.email}</span>
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 xl:col-span-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-white font-bold">Company Details</div>
+                    <div className="text-xs text-slate-400 mt-1">Loaded directly from the backend company bundle.</div>
                   </div>
+                  <Pill label={company.status.toUpperCase()} tone={company.status === "active" ? "success" : company.status === "pending" ? "warning" : "inactive"} />
+                </div>
 
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <span className="text-slate-300 inline-flex items-center gap-2">
-                      <FaPhone /> Phone
-                    </span>
-                    <span className="font-semibold text-white">{company.phone}</span>
-                  </div>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                  <InfoRow icon={<FaEnvelope />} label="Email" value={company.email} />
+                  <InfoRow icon={<FaPhone />} label="Phone" value={company.phone} />
+                  <InfoRow icon={<FaMapMarkerAlt />} label="Location" value={company.location} />
+                  <InfoRow icon={<FaBuilding />} label="Company Code" value={company.companyCode ? String(company.companyCode) : "-"} />
+                  <InfoRow icon={<FaCrown />} label="CIN" value={company.cin || "-"} />
+                  <InfoRow icon={<FaShieldAlt />} label="PAN" value={company.pan || "-"} />
+                </div>
 
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <span className="text-slate-300 inline-flex items-center gap-2">
-                      <FaCrown /> Purchase Plan
-                    </span>
-                    <span className="font-semibold text-white">
-                      {company.subscriptionPlan} (₹{fmtINR(company.planAmount)})
-                    </span>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                    <span className="text-slate-300 inline-flex items-center gap-2">
-                      <FaCalendar /> Plan Duration
-                    </span>
-                    <span className="font-semibold text-white">
-                      {company.planFrom} → {company.planTo}
-                    </span>
-                  </div>
+                <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
+                  <div className="text-sm font-semibold text-white mb-3">Documents</div>
+                  {company.documents?.length ? (
+                    <div className="flex flex-wrap gap-2">
+                      {company.documents.map((d) => (
+                        <a
+                          key={d.key}
+                          href={docUrl(d.key)}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-slate-200 hover:bg-white/10"
+                        >
+                          <FaFilePdf />
+                          {d.key}
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-400">No documents available</div>
+                  )}
                 </div>
               </div>
 
               <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="text-white font-bold">HR Accounts Summary</div>
-                  <Pill
-                    label={`${hrUsers.length} / ${finalHrLimit}`}
-                    tone={limitReached ? "warning" : "success"}
-                  />
+                  <div>
+                    <div className="text-white font-bold">Subscription Status</div>
+                    <div className="text-xs text-slate-400 mt-1">Live subscription details from the backend.</div>
+                  </div>
+                  <Pill label={effectiveSubscriptionActive ? "ACTIVE" : "INACTIVE"} tone={effectiveSubscriptionActive ? "success" : "danger"} />
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                  <div className="flex items-center justify-between">
-                    <span>Starter</span>
-                    <span className="text-white font-semibold">1 HR</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span>Professional</span>
-                    <span className="text-white font-semibold">3 HR</span>
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <span>Enterprise</span>
-                    <span className="text-white font-semibold">Custom HR</span>
-                  </div>
+                <div className="mt-4 space-y-3">
+                  <InfoRow icon={<FaCrown />} label="Plan" value={company.subscriptionPlan} />
+                  <InfoRow icon={<FaFilePdf />} label="Plan Price" value={`₹${fmtINR(company.planAmount)}`} />
+                  <InfoRow icon={<FaCalendar />} label="Billing Cycle" value={subscriptionMeta?.billing || company.billingCycle || "MONTHLY"} />
+                  <InfoRow icon={<FaShieldAlt />} label="Subscription Status" value={subscriptionMeta?.status || (effectiveSubscriptionActive ? "ACTIVE" : "EXPIRED")} />
+                  <InfoRow icon={<FaCalendar />} label="Start Date" value={formatDisplayDate(subscriptionMeta?.startsAt || company.planFrom)} />
+                  <InfoRow icon={<FaCalendar />} label="End Date" value={formatDisplayDate(subscriptionMeta?.expiresAt || company.planTo)} />
+                  <InfoRow icon={<FaUserTie />} label="HR Seats Used" value={`${hrUsers.length} / ${finalHrLimit}`} />
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
-                    onClick={() => setPage("hr")}
+                    onClick={openHrManagement}
                     className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
                   >
                     Manage HR
@@ -665,10 +922,10 @@ export default function companyDashboardOneCompany() {
                   </button>
 
                   <button
-                    onClick={() => setUpgradeOpen(true)}
+                    onClick={() => navigate("/company/subscription")}
                     className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
                   >
-                    Upgrade Plan
+                    View Subscription
                     <FaChevronRight />
                   </button>
                 </div>
@@ -680,20 +937,13 @@ export default function companyDashboardOneCompany() {
 
       {/* STATS */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Total Employees"
-          value={employeesData.length.toString()}
-          icon={<FaUsers className="text-xl" />}
-          onClick={() => setPage("employees")}
-        />
-
+        <StatCard title="Total Employees" value={employeesData.length.toString()} icon={<FaUsers className="text-xl" />} onClick={() => setPage("employees")} />
         <StatCard
           title="Employee Attendance"
           value={`${attendanceSummary.pct}%`}
           icon={<FaChartLine className="text-xl" />}
           deltaLabel={`${attendanceSummary.present} Present • ${attendanceSummary.absent} Absent • ${attendanceSummary.leave} Leave`}
         />
-
         <StatCard
           title="Company Payroll (Departments)"
           value={`₹${fmtINR(totals.payroll)}`}
@@ -701,13 +951,7 @@ export default function companyDashboardOneCompany() {
           delta={{ dir: "up", value: "Auto" }}
           deltaLabel="Calculated from analytics"
         />
-
-        <StatCard
-          title="HR Accounts"
-          value={`${hrUsers.length}/${finalHrLimit}`}
-          icon={<FaUserTie className="text-xl" />}
-          onClick={() => setPage("hr")}
-        />
+        <StatCard title="HR Accounts" value={`${hrUsers.length}/${finalHrLimit}`} icon={<FaUserTie className="text-xl" />} onClick={openHrManagement} />
       </div>
 
       {/* GRAPHS */}
@@ -748,22 +992,18 @@ export default function companyDashboardOneCompany() {
     </div>
   );
 
-  /** -----------------------------
-   * EMPLOYEE PAGE
-   ------------------------------*/
+  /** EMPLOYEE PAGE */
   const EmployeePage = () => (
     <div className="space-y-6">
       <div className="rounded-[2.25rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <div className="text-2xl font-extrabold text-white">Employee List</div>
-            <div className="text-sm text-slate-300">
-              All employees under {company.name} (with attendance)
-            </div>
+            <div className="text-sm text-slate-300">All employees under {company.name} (with attendance)</div>
           </div>
 
           <button
-            onClick={() => setPage("dashboard")}
+            onClick={openDashboard}
             className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
           >
             Back Dashboard
@@ -821,13 +1061,7 @@ export default function companyDashboardOneCompany() {
                       <td className="px-4 py-4">
                         <Pill
                           label={emp.status.toUpperCase().replace("-", " ")}
-                          tone={
-                            emp.status === "active"
-                              ? "success"
-                              : emp.status === "on-leave"
-                              ? "warning"
-                              : "inactive"
-                          }
+                          tone={emp.status === "active" ? "success" : emp.status === "on-leave" ? "warning" : "inactive"}
                         />
                       </td>
 
@@ -853,10 +1087,7 @@ export default function companyDashboardOneCompany() {
                       </td>
 
                       <td className="px-4 py-4">
-                        <Pill
-                          label={`${pct}%`}
-                          tone={pct >= 90 ? "success" : pct >= 80 ? "warning" : "danger"}
-                        />
+                        <Pill label={`${pct}%`} tone={pct >= 90 ? "success" : pct >= 80 ? "warning" : "danger"} />
                       </td>
                     </tr>
                   );
@@ -864,319 +1095,219 @@ export default function companyDashboardOneCompany() {
               </tbody>
             </table>
 
-            {!employeesData.length && (
-              <div className="py-10 text-center text-slate-300">No employees found.</div>
-            )}
+            {!employeesData.length && <div className="py-10 text-center text-slate-300">No employees found.</div>}
           </div>
         </div>
       </Panel>
     </div>
   );
 
-  /** -----------------------------
-   * HR PAGE
-   ------------------------------*/
-  const HRPage = () => (
-    <div className="space-y-6">
-      <div className="rounded-[2.25rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+    /** HR PAGE */
+  const HRPage = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl md:flex-row md:items-center md:justify-between">
           <div>
             <div className="text-2xl font-extrabold text-white">HR Management</div>
-            <div className="text-sm text-slate-300">
-              Enter works: Name → Email → Phone → Add
-            </div>
+            <div className="mt-1 text-sm text-slate-300">Add and manage HR accounts for {company.name}.</div>
           </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => setPage("dashboard")}
-              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
-            >
-              Back Dashboard
-            </button>
-
-            <button
-              onClick={() => setUpgradeOpen(true)}
-              className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
-            >
-              Upgrade Plan
-            </button>
-          </div>
+          <button
+            onClick={openDashboard}
+            className="self-start rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 transition hover:bg-white/10 md:self-auto"
+          >
+            Back to Dashboard
+          </button>
         </div>
-      </div>
 
-      <Panel
-        title="Subscription Verification"
-        right={
-          <Pill
-            label={company.status === "active" ? "Verified" : "Not Active"}
-            tone={company.status === "active" ? "success" : "warning"}
-          />
-        }
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm text-slate-300">Current Plan</div>
-            <div className="mt-1 text-2xl font-extrabold text-white">
-              {company.subscriptionPlan}
-            </div>
-            <div className="mt-2 text-sm text-slate-300">
-              Amount: <b className="text-white">₹{fmtINR(company.planAmount)}</b>
-            </div>
-            <div className="mt-2 text-sm text-slate-300">
-              Valid:{" "}
-              <b className="text-white">
-                {company.planFrom} → {company.planTo}
-              </b>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <div className="text-sm text-slate-300">HR Limit (Plan Wise)</div>
-            <div className="mt-1 text-2xl font-extrabold text-white">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+            <div className="text-sm text-slate-300">HR Accounts Used</div>
+            <div className="mt-2 text-2xl font-extrabold text-white">
               {hrUsers.length} / {finalHrLimit}
             </div>
-
-            <div className="mt-2 text-sm text-slate-300">
-              Status:{" "}
-              <b className={limitReached ? "text-rose-200" : "text-green-200"}>
-                {limitReached ? "Limit Reached" : "Available"}
-              </b>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+            <div className="text-sm text-slate-300">Subscription</div>
+            <div className={cn("mt-2 text-2xl font-extrabold", effectiveSubscriptionActive ? "text-emerald-300" : "text-rose-300")}>
+              {effectiveSubscriptionActive ? "Active" : "Inactive"}
             </div>
+          </div>
+          <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl">
+            <div className="text-sm text-slate-300">Seats</div>
+            <div className={cn("mt-2 text-2xl font-extrabold", limitReached ? "text-amber-300" : "text-cyan-300")}>
+              {limitReached ? "Full" : "Available"}
+            </div>
+          </div>
+        </div>
 
-            {company.subscriptionPlan === "Enterprise" && (
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs text-slate-400 mb-2">
-                  Enterprise Custom HR Limit
-                </div>
+        <Panel
+          title="Add HR Account"
+          right={limitReached ? <Pill label="Limit Reached" tone="warning" /> : <Pill label="Ready" tone="success" />}
+        >
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-[0.2em] text-slate-400">Name</label>
                 <input
-                  type="number"
-                  value={enterpriseCustomLimit}
-                  min={1}
-                  onChange={(e) =>
-                    setEnterpriseCustomLimit(Math.max(1, Number(e.target.value || 1)))
-                  }
-                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-2 text-white outline-none"
+                  ref={hrNameRef}
+                  value={hrName}
+                  onChange={(e) => setHrName(e.target.value)}
+                  onKeyDown={(e) => handleHRKeyDown(e, "name")}
+                  placeholder="HR name"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/40"
                 />
               </div>
-            )}
-          </div>
-        </div>
-      </Panel>
-
-      <Panel
-        title="Add HR Account"
-        right={
-          limitReached ? (
-            <Pill label="Upgrade Required" tone="warning" />
-          ) : (
-            <Pill label="Allowed" tone="success" />
-          )
-        }
-      >
-        {/* IMPORTANT: z-20 makes sure inputs always clickable */}
-        <div className="relative z-20 grid grid-cols-1 lg:grid-cols-3 gap-3">
-          <input
-            ref={hrNameRef}
-            value={hrName}
-            onChange={(e) => setHrName(e.target.value)}
-            onKeyDown={(e) => handleHRKeyDown(e, "name")}
-            placeholder="HR Name"
-            autoComplete="off"
-            spellCheck={false}
-            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-white outline-none placeholder:text-slate-500"
-          />
-
-          <input
-            ref={hrEmailRef}
-            value={hrEmail}
-            onChange={(e) => setHrEmail(e.target.value)}
-            onKeyDown={(e) => handleHRKeyDown(e, "email")}
-            placeholder="HR Email"
-            autoComplete="off"
-            spellCheck={false}
-            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-white outline-none placeholder:text-slate-500"
-          />
-
-          <input
-            ref={hrPhoneRef}
-            value={hrPhone}
-            onChange={(e) => setHrPhone(e.target.value)}
-            onKeyDown={(e) => handleHRKeyDown(e, "phone")}
-            placeholder="HR Phone"
-            autoComplete="off"
-            spellCheck={false}
-            inputMode="numeric"
-            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-white outline-none placeholder:text-slate-500"
-          />
-        </div>
-
-        {hrError && (
-          <div className="mt-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-            {hrError}
-          </div>
-        )}
-
-        <div className="mt-4 flex flex-wrap gap-3">
-          <button
-            onClick={addHR}
-            disabled={limitReached || company.status !== "active"}
-            className={cn(
-              "inline-flex items-center gap-2 rounded-2xl px-6 py-3 text-sm font-semibold transition",
-              limitReached || company.status !== "active"
-                ? "bg-white/10 text-slate-400 cursor-not-allowed"
-                : "bg-gradient-to-r from-cyan-400 to-blue-500 text-white hover:opacity-95"
-            )}
-          >
-            <FaPlus /> Add HR
-          </button>
-
-          {(limitReached || company.status !== "active") && (
-            <button
-              onClick={() => setUpgradeOpen(true)}
-              className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-6 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
-            >
-              Upgrade Subscription
-              <FaChevronRight />
-            </button>
-          )}
-        </div>
-      </Panel>
-
-      <Panel title="HR Accounts List">
-        <div className="rounded-3xl border border-white/10 bg-white/5 overflow-hidden">
-          <div data-scrollbox="true" className="max-h-[520px] overflow-auto">
-            <table className="min-w-full w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-950/70 backdrop-blur text-slate-200">
-                <tr className="border-b border-white/10">
-                  <th className="text-left px-4 py-3">HR Name</th>
-                  <th className="text-left px-4 py-3">Email</th>
-                  <th className="text-left px-4 py-3">Phone</th>
-                  <th className="text-left px-4 py-3">Created</th>
-                  <th className="text-left px-4 py-3">Action</th>
-                </tr>
-              </thead>
-
-              <tbody className="text-white">
-                {hrUsers.map((h) => (
-                  <tr key={h.id} className="border-t border-white/10 hover:bg-white/5">
-                    <td className="px-4 py-4 font-semibold">{h.name}</td>
-                    <td className="px-4 py-4 text-slate-200">{h.email}</td>
-                    <td className="px-4 py-4 text-slate-200">{h.phone}</td>
-                    <td className="px-4 py-4 text-slate-300">{h.createdAt}</td>
-                    <td className="px-4 py-4">
-                      <button
-                        onClick={() => deleteHR(h.id)}
-                        className="inline-flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-200 hover:bg-rose-500/15 transition"
-                      >
-                        <FaTrash /> Remove
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-
-                {!hrUsers.length && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-slate-300">
-                      No HR accounts added.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </Panel>
-    </div>
-  );
-
-  /** -----------------------------
-   * UPGRADE MODAL
-   ------------------------------*/
-  const UpgradeModal = () => {
-    if (!upgradeOpen) return null;
-
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/60" onClick={() => setUpgradeOpen(false)} />
-
-        <div className="relative w-full max-w-2xl rounded-3xl border border-white/10 bg-slate-950 p-6 shadow-2xl">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="text-xl font-extrabold text-white">Upgrade Subscription</div>
-              <div className="text-sm text-slate-300">
-                Choose a plan to unlock more HR accounts.
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-[0.2em] text-slate-400">Email</label>
+                <input
+                  ref={hrEmailRef}
+                  value={hrEmail}
+                  onChange={(e) => setHrEmail(e.target.value)}
+                  onKeyDown={(e) => handleHRKeyDown(e, "email")}
+                  placeholder="HR email"
+                  autoComplete="off"
+                  spellCheck={false}
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/40"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs uppercase tracking-[0.2em] text-slate-400">Phone</label>
+                <input
+                  ref={hrPhoneRef}
+                  value={hrPhone}
+                  onChange={(e) => setHrPhone(e.target.value)}
+                  onKeyDown={(e) => handleHRKeyDown(e, "phone")}
+                  placeholder="HR phone"
+                  autoComplete="off"
+                  spellCheck={false}
+                  inputMode="numeric"
+                  className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none placeholder:text-slate-500 focus:border-cyan-400/40"
+                />
               </div>
             </div>
 
-            <button
-              onClick={() => setUpgradeOpen(false)}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
-            >
-              <FaTimes />
-            </button>
-          </div>
+            <p className="mt-3 text-xs text-slate-400">
+              This just creates the HR record. Open the account's details afterwards to set up their login and assign employees.
+            </p>
 
-          <div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">
-            {planCatalog.map((p) => {
-              const active = upgradePlan === p.plan;
-              const current = company.subscriptionPlan === p.plan;
+            {hrError && (
+              <div className="mt-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+                {hrError}
+              </div>
+            )}
 
-              return (
-                <button
-                  key={p.plan}
-                  onClick={() => setUpgradePlan(p.plan)}
-                  className={cn(
-                    "rounded-3xl border p-5 text-left transition",
-                    active
-                      ? "border-cyan-500/40 bg-cyan-500/10"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                onClick={addHR}
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-500/20 transition hover:opacity-95"
+              >
+                <FaPlus /> Add HR
+              </button>
+            </div>
+        </Panel>
+
+        <Panel title="HR Accounts" right={<Pill label={`${hrUsers.length} of ${finalHrLimit} used`} tone={limitReached ? "warning" : "success"} />}>
+          <div className="overflow-hidden rounded-3xl border border-white/10 bg-white/5">
+            <div data-scrollbox="true" className="max-h-[560px] overflow-auto">
+              <table className="min-w-full w-full text-sm">
+                <thead className="sticky top-0 z-10 bg-slate-950/90 backdrop-blur text-slate-200">
+                  <tr className="border-b border-white/10">
+                    <th className="px-4 py-4 text-left font-semibold">Name</th>
+                    <th className="px-4 py-4 text-left font-semibold">Contact</th>
+                    <th className="px-4 py-4 text-left font-semibold">Username</th>
+                    <th className="px-4 py-4 text-left font-semibold">Added</th>
+                    <th className="px-4 py-4 text-left font-semibold"></th>
+                  </tr>
+                </thead>
+                <tbody className="text-white">
+                  {hrUsers.map((h) => (
+                    <tr
+                      key={h.id}
+                      className="cursor-pointer border-t border-white/10 transition hover:bg-white/5"
+                      onClick={() => setDetailHrId(h.id)}
+                    >
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-cyan-400/25 to-blue-500/20 text-cyan-100 ring-1 ring-white/10">
+                            {h.name
+                              .split(" ")
+                              .filter(Boolean)
+                              .slice(0, 2)
+                              .map((part) => part[0]?.toUpperCase())
+                              .join("") || <FaUserTie />}
+                          </div>
+                          <div className="font-semibold text-white">{h.name}</div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-slate-200">{h.email}</div>
+                        <div className="mt-1 text-xs text-slate-400">{h.phone}</div>
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="text-slate-200">{h.username}</div>
+                        <div className="mt-1 text-xs text-slate-400">
+                          {h.hasLogin ? "Password set" : "Login not configured"}
+                          {(h.loginUpdatedAt || h.passwordUpdatedAt)
+                            ? ` • Updated ${new Date(String(h.loginUpdatedAt || h.passwordUpdatedAt)).toLocaleDateString()}`
+                            : ""}
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-slate-400">{h.createdAt}</td>
+                      <td className="px-4 py-4 text-right">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDetailHrId(h.id);
+                          }}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/15 px-4 py-2 text-xs font-semibold text-cyan-100 transition hover:bg-cyan-500/25"
+                        >
+                          View Details
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+
+                  {!hrUsers.length && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-14 text-center">
+                        <div className="mx-auto max-w-md rounded-3xl border border-dashed border-white/15 bg-white/5 px-6 py-8">
+                          <div className="text-lg font-semibold text-white">No HR accounts yet</div>
+                          <div className="mt-2 text-sm leading-6 text-slate-400">
+                            Add your first HR account using the form above.
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
                   )}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-white font-extrabold">{p.plan}</div>
-                    {current && <Pill label="Current" tone="success" />}
-                  </div>
-
-                  <div className="mt-3 text-2xl font-extrabold text-white">
-                    ₹{fmtINR(p.amount)}
-                  </div>
-
-                  <div className="mt-2 text-sm text-slate-300">
-                    HR Limit:{" "}
-                    <b className="text-white">
-                      {typeof p.hr === "string" ? p.hr : `${p.hr} HR`}
-                    </b>
-                  </div>
-                </button>
-              );
-            })}
+                </tbody>
+              </table>
+            </div>
           </div>
-
-          <div className="mt-6 flex flex-wrap justify-end gap-3">
-            <button
-              onClick={() => setUpgradeOpen(false)}
-              className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
-            >
-              Cancel
-            </button>
-
-            <button
-              onClick={applyUpgrade}
-              className="rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-6 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
-            >
-              Confirm Upgrade
-            </button>
-          </div>
-        </div>
+        </Panel>
       </div>
     );
   };
 
+  const detailHr = hrUsers.find((h) => h.id === detailHrId) || null;
+
   return (
     <>
-      {page === "dashboard" ? <DashboardPage /> : page === "hr" ? <HRPage /> : <EmployeePage />}
-      <UpgradeModal />
+      {page === "dashboard" ? DashboardPage() : page === "hr" ? HRPage() : EmployeePage()}
+      {detailHr && (
+        <HrDetailPanel
+          companyId={company.id}
+          companyCode={String(company.companyCode || "")}
+          hr={detailHr}
+          onClose={() => setDetailHrId(null)}
+          onUpdated={refreshCompanyBundle}
+          onDeleted={() => {
+            setDetailHrId(null);
+            refreshCompanyBundle();
+          }}
+        />
+      )}
     </>
   );
 }
+

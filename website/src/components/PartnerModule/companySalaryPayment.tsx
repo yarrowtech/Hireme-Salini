@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   IndianRupee,
   Users,
@@ -21,13 +21,12 @@ import {
 
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
+import companyApi from "../../api/company.api.js";
+import { getCompanyLabel, syncCompanyStorage } from "./companyHelpers";
 
 /**
- * ✅ FRONTEND ONLY
- * - No fetch
- * - No axios
- * - No backend
- * - Dummy data only
+ * Payroll is loaded from the backend `company/payroll` endpoint.
+ * When the backend has no rows yet, the UI renders an empty state.
  */
 
 type PayStatus = "PENDING" | "INITIATED" | "SUBMITTED" | "CONFIRMED" | "FAILED";
@@ -65,11 +64,6 @@ const fmtINR = (n: number) => Number(n || 0).toLocaleString("en-IN", { maximumFr
 
 const makeId = (p: string) => `${p}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-const DEFAULT_COMPANY = "company Company"; // ✅ fixed value (manual typing removed)
-
-/** demo wallet for funds check */
-const COMPANY_BALANCE = 200000;
-
 const STATUS_BADGE: Record<PayStatus, string> = {
   PENDING: "bg-white/10 border-white/15 text-slate-200",
   INITIATED: "bg-cyan-500/10 border-cyan-400/20 text-cyan-200",
@@ -92,57 +86,6 @@ const methodIcon = (m: PaymentMethod) => {
 
 /** ✅ SAFE: works without ES2021 replaceAll */
 const formatMethod = (m: PaymentMethod) => m.replace(/_/g, " ");
-
-const seedRows = (): EmployeeSalaryRow[] => [
-  {
-    id: makeId("SAL"),
-    employeeId: "EMP-1001",
-    employeeName: "A. Roy",
-    role: "Frontend Developer",
-    month: "Dec 2025",
-    baseSalary: 35000,
-    bonus: 3000,
-    deductions: 1200,
-    netPay: 36800,
-    status: "PENDING",
-  },
-  {
-    id: makeId("SAL"),
-    employeeId: "EMP-1002",
-    employeeName: "K. Das",
-    role: "Backend Developer",
-    month: "Dec 2025",
-    baseSalary: 42000,
-    bonus: 4000,
-    deductions: 1500,
-    netPay: 44500,
-    status: "PENDING",
-  },
-  {
-    id: makeId("SAL"),
-    employeeId: "EMP-1003",
-    employeeName: "S. Khan",
-    role: "HR Executive",
-    month: "Dec 2025",
-    baseSalary: 28000,
-    bonus: 1500,
-    deductions: 800,
-    netPay: 28700,
-    status: "INITIATED",
-  },
-  {
-    id: makeId("SAL"),
-    employeeId: "EMP-1004",
-    employeeName: "R. Singh",
-    role: "Support",
-    month: "Dec 2025",
-    baseSalary: 22000,
-    bonus: 1000,
-    deductions: 500,
-    netPay: 22500,
-    status: "CONFIRMED",
-  },
-];
 
 function Pill({ tone, children }: { tone: string; children: React.ReactNode }) {
   return (
@@ -217,7 +160,8 @@ async function exportElementToPdf(element: HTMLElement, fileName: string) {
     sb.style.height = "auto";
     sb.style.overflow = "visible";
   });
-
+  
+  
   document.body.appendChild(clone);
 
   try {
@@ -306,7 +250,7 @@ function receiptPdf(txn: PaymentTxn) {
   pdf.line(14, y + 2, w - 14, y + 2);
 
   pdf.setFontSize(10);
-  pdf.text("Generated from demo UI (no backend validation).", 14, y + 12);
+  pdf.text("Generated from backend-backed payroll data.", 14, y + 12);
 
   pdf.save(`receipt_${txn.referenceNo || txn.id}.pdf`);
 }
@@ -325,13 +269,13 @@ function validateEmployees(list: EmployeeSalaryRow[]) {
 }
 
 export default function companySalaryPayment() {
-  const displayCompany = DEFAULT_COMPANY;
-
-  const [rows, setRows] = useState<EmployeeSalaryRow[]>(() => seedRows());
+  const [displayCompany, setDisplayCompany] = useState("Company");
+  const [rows, setRows] = useState<EmployeeSalaryRow[]>([]);
   const [query, setQuery] = useState("");
-  const [month, setMonth] = useState("Dec 2025");
+  const [month, setMonth] = useState(new Date().toLocaleString("en-US", { month: "short", year: "numeric" }));
   const [statusFilter, setStatusFilter] = useState<PayStatus | "ALL">("ALL");
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
+  const [loading, setLoading] = useState(true);
 
   const [openPay, setOpenPay] = useState(false);
   const [method, setMethod] = useState<PaymentMethod>("BANK_TRANSFER");
@@ -344,20 +288,91 @@ export default function companySalaryPayment() {
   const salaryExportRef = useRef<HTMLDivElement | null>(null);
   const historyExportRef = useRef<HTMLDivElement | null>(null);
 
-  const [txns, setTxns] = useState<PaymentTxn[]>(() => [
-    {
-      id: makeId("TXN"),
-      createdAt: new Date().toISOString(),
-      companyName: DEFAULT_COMPANY,
-      month: "Nov 2025",
-      method: "UPI",
-      amount: 93200,
-      referenceNo: "UPI-8H2K9P",
-      note: "November salary payout batch",
-      proofName: "payment_screenshot.png",
-      status: "CONFIRMED",
-    },
-  ]);
+  const [txns, setTxns] = useState<PaymentTxn[]>([]);
+  const [companyId, setCompanyId] = useState<string>("");
+
+  useEffect(() => {
+    let alive = true;
+
+    const load = async () => {
+      try {
+        const resolvedCompanyId = await companyApi.resolveCompanyId();
+        if (!resolvedCompanyId) return;
+        setCompanyId(resolvedCompanyId);
+
+        const [payrollRes, dashboardRes] = await Promise.all([
+          companyApi.getCompanyPayroll(resolvedCompanyId),
+          companyApi.getCompanyDashboard(resolvedCompanyId).catch(() => null),
+        ]);
+
+        if (!alive) return;
+
+        const company = dashboardRes?.company;
+        if (company) {
+          setDisplayCompany(getCompanyLabel(company, "Company"));
+        }
+
+        const payroll = payrollRes?.payroll || null;
+        const payrollRows = Array.isArray(payroll?.rows) ? payroll.rows : [];
+        const payrollTxns = Array.isArray(payroll?.transactions) ? payroll.transactions : [];
+
+        setRows(
+          payrollRows.map((row: any, idx: number) => ({
+            id: row.id || makeId("SAL"),
+            employeeId: row.employeeId || `EMP-${idx + 1}`,
+            employeeName: row.employeeName || "Employee",
+            role: row.role || "Employee",
+            month: row.month || month,
+            baseSalary: Number(row.baseSalary || 0),
+            bonus: Number(row.bonus || 0),
+            deductions: Number(row.deductions || 0),
+            netPay: Number(row.netPay || 0),
+            status: row.status || "PENDING",
+          }))
+        );
+
+        setTxns(
+          payrollTxns.map((txn: any, idx: number) => ({
+            id: txn.id || makeId("TXN"),
+            createdAt: txn.createdAt || new Date().toISOString(),
+            companyName: getCompanyLabel(company, "Company"),
+            month: txn.month || month,
+            method: txn.method || "BANK_TRANSFER",
+            amount: Number(txn.amount || 0),
+            referenceNo: txn.referenceNo || `REF-${idx + 1}`,
+            note: txn.note || undefined,
+            proofName: txn.proofName || undefined,
+            status: txn.status || "SUBMITTED",
+          }))
+        );
+
+        syncCompanyStorage(
+          {
+            company,
+            subscription: dashboardRes?.subscription,
+            serviceAccess: dashboardRes?.serviceAccess,
+            payroll,
+          },
+          resolvedCompanyId
+        );
+        if (!payrollRows.length) {
+          setRows([]);
+        }
+        if (!payrollTxns.length) {
+          setTxns([]);
+        }
+      } catch (error) {
+        console.error("Failed to load payroll", error);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, [month]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -413,6 +428,59 @@ export default function companySalaryPayment() {
     });
   };
 
+  const persistPayroll = async (nextRows: EmployeeSalaryRow[], nextTxns: PaymentTxn[]) => {
+    if (!companyId) return;
+    const res = await companyApi.submitCompanyPayroll(companyId, {
+      rows: nextRows.map((row) => ({
+        id: row.id,
+        employeeId: row.employeeId,
+        employeeName: row.employeeName,
+        role: row.role,
+        month: row.month,
+        baseSalary: row.baseSalary,
+        bonus: row.bonus,
+        deductions: row.deductions,
+        netPay: row.netPay,
+        status: row.status,
+      })),
+      transactions: nextTxns,
+    });
+
+    if (res?.payroll) {
+      syncCompanyStorage({ payroll: res.payroll, company: { CompanyName: displayCompany } }, companyId);
+      const updatedRows = Array.isArray(res.payroll.rows) ? res.payroll.rows : [];
+      const updatedTxns = Array.isArray(res.payroll.transactions) ? res.payroll.transactions : [];
+      setRows(
+        updatedRows.map((row: any, idx: number) => ({
+          id: row.id || makeId("SAL"),
+          employeeId: row.employeeId || `EMP-${idx + 1}`,
+          employeeName: row.employeeName || "Employee",
+          role: row.role || "Employee",
+          month: row.month || month,
+          baseSalary: Number(row.baseSalary || 0),
+          bonus: Number(row.bonus || 0),
+          deductions: Number(row.deductions || 0),
+          netPay: Number(row.netPay || 0),
+          status: row.status || "PENDING",
+        }))
+      );
+      setTxns(
+        updatedTxns.map((txn: any, idx: number) => ({
+          id: txn.id || makeId("TXN"),
+          createdAt: txn.createdAt || new Date().toISOString(),
+          companyName: displayCompany,
+          month: txn.month || month,
+          method: txn.method || "BANK_TRANSFER",
+          amount: Number(txn.amount || 0),
+          referenceNo: txn.referenceNo || `REF-${idx + 1}`,
+          note: txn.note || undefined,
+          proofName: txn.proofName || undefined,
+          status: txn.status || "SUBMITTED",
+        }))
+      );
+    }
+  };
+
   const openPayModal = () => {
     const list = selectedRows.length ? selectedRows : filtered;
     const payables = list.filter((r) => r.status !== "CONFIRMED");
@@ -420,11 +488,6 @@ export default function companySalaryPayment() {
 
     const err = validateEmployees(payables);
     if (err) return alert(err);
-
-    if (payableAmount > COMPANY_BALANCE) {
-      alert("Insufficient funds to process this payment.");
-      return;
-    }
 
     setRows((prev) =>
       prev.map((r) =>
@@ -439,7 +502,7 @@ export default function companySalaryPayment() {
     setOpenPay(true);
   };
 
-  const submitPayment = () => {
+  const submitPayment = async () => {
     if (!referenceNo.trim()) return alert("Please enter Reference / UTR / Transaction ID.");
 
     const list = selectedRows.length ? selectedRows : filtered;
@@ -448,35 +511,36 @@ export default function companySalaryPayment() {
     const err = validateEmployees(payables);
     if (err) return alert(err);
 
-    if (payableAmount > COMPANY_BALANCE) return alert("Insufficient funds to process this payment.");
+    const nextRows = rows.map((r) => (payables.some((x) => x.id === r.id) ? { ...r, status: "SUBMITTED" } : r));
 
-    setRows((prev) => prev.map((r) => (payables.some((x) => x.id === r.id) ? { ...r, status: "SUBMITTED" } : r)));
+    const newTxn: PaymentTxn = {
+      id: makeId("TXN"),
+      createdAt: new Date().toISOString(),
+      companyName: displayCompany,
+      month,
+      method,
+      amount: payableAmount,
+      referenceNo: referenceNo.trim(),
+      note: note.trim() || undefined,
+      proofName: proofFile?.name,
+      status: "SUBMITTED",
+    };
 
-    setTxns((prev) => [
-      {
-        id: makeId("TXN"),
-        createdAt: new Date().toISOString(),
-        companyName: displayCompany,
-        month,
-        method,
-        amount: payableAmount,
-        referenceNo: referenceNo.trim(),
-        note: note.trim() || undefined,
-        proofName: proofFile?.name,
-        status: "SUBMITTED",
-      },
-      ...prev,
-    ]);
+    const nextTxns = [newTxn, ...txns];
+    setRows(nextRows);
+    setTxns(nextTxns);
+    await persistPayroll(nextRows, nextTxns);
 
     setSelectedIds({});
     setOpenPay(false);
   };
 
-  const markTxnConfirmedDemo = (txnId: string) => {
-    setTxns((prev) => prev.map((t) => (t.id === txnId ? { ...t, status: "CONFIRMED" } : t)));
-    setRows((prev) =>
-      prev.map((r) => (r.month === month && r.status === "SUBMITTED" ? { ...r, status: "CONFIRMED" } : r))
-    );
+  const markTxnConfirmedDemo = async (txnId: string) => {
+    const nextTxns = txns.map((t) => (t.id === txnId ? { ...t, status: "CONFIRMED" as const } : t));
+    const nextRows = rows.map((r) => (r.month === month && r.status === "SUBMITTED" ? { ...r, status: "CONFIRMED" as const } : r));
+    setTxns(nextTxns);
+    setRows(nextRows);
+    await persistPayroll(nextRows, nextTxns);
   };
 
   /** EXPORT */
@@ -501,19 +565,20 @@ export default function companySalaryPayment() {
       <div className="relative z-10 w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white shadow-lg">
-              <IndianRupee />
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold text-white">
-                Company{" "}
-                <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
-                  Salary Payment
-                </span>
-              </h1>
-            </div>
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-white shadow-lg">
+            <IndianRupee />
           </div>
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold text-white">
+              Company{" "}
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Salary Payment
+              </span>
+            </h1>
+            {loading ? <div className="text-sm text-cyan-200 mt-1">Loading payroll from backend...</div> : null}
+          </div>
+        </div>
         </div>
 
         {/* Stats */}
@@ -834,7 +899,7 @@ export default function companySalaryPayment() {
         <Modal
           open={openPay}
           title="Pay HireMe"
-          subtitle="Frontend demo only. Enter reference and optional proof."
+          subtitle="Backend-backed payroll payment. Enter reference and optional proof."
           onClose={() => setOpenPay(false)}
         >
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -857,10 +922,8 @@ export default function companySalaryPayment() {
                   <b className="text-white">₹ {fmtINR(payableAmount)}</b>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span>Balance</span>
-                  <b className={cn("text-white", payableAmount > COMPANY_BALANCE && "text-rose-200")}>
-                    ₹ {fmtINR(COMPANY_BALANCE)}
-                  </b>
+                  <span>Backend</span>
+                  <b className="text-white">Payroll saved to database</b>
                 </div>
               </div>
             </div>
@@ -972,12 +1035,9 @@ export default function companySalaryPayment() {
                 <button
                   type="button"
                   onClick={submitPayment}
-                  disabled={payableAmount > COMPANY_BALANCE}
                   className={cn(
                     "px-4 py-3 rounded-2xl font-semibold text-white shadow-lg transition-all inline-flex items-center gap-2",
-                    payableAmount > COMPANY_BALANCE
-                      ? "bg-white/10 border border-white/15 opacity-60 cursor-not-allowed"
-                      : "bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-[1.02]"
+                    "bg-gradient-to-r from-cyan-400 to-blue-500 hover:scale-[1.02]"
                   )}
                 >
                   <Upload size={16} /> Submit Payment
@@ -985,7 +1045,7 @@ export default function companySalaryPayment() {
               </div>
 
               <div className="mt-4 text-xs text-slate-300/70">
-                Demo UI only: no backend / no API calls. Export uses html2canvas + jsPDF.
+                Backend-backed payroll data is loaded from `GET /api/company/:companyId/payroll` and saved with `POST /api/company/:companyId/payroll`.
               </div>
             </div>
           </div>

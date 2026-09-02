@@ -1,63 +1,233 @@
-import api from "./axios";
+// src/api/company.api.js
+import api, { buildFileUrl } from "./axios";
+
+function readStoredUser() {
+  try {
+    const raw = localStorage.getItem("user") || localStorage.getItem("authUser") || localStorage.getItem("currentUser") || "";
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export const companyApi = {
-  // ✅ Become Partner (multipart/form-data)
   async sendRequest(payload) {
     const fd = new FormData();
 
-    // text
-    fd.append("CompanyName", payload?.CompanyName?.trim?.() || "");
+    fd.append("CompanyName", payload?.CompanyName?.trim?.() || "");  
     fd.append("Contact", payload?.Contact?.trim?.() || "");
     fd.append("Email", payload?.Email?.trim?.() || "");
     fd.append("Address", payload?.Address?.trim?.() || "");
     fd.append("CIN", payload?.CIN?.trim?.() || "");
     fd.append("PAN_No", payload?.PAN_No?.trim?.() || "");
 
-    // ✅ plan
     fd.append("planKey", payload?.planKey || "");
     fd.append("billingCycle", payload?.billingCycle || "");
-    // files
+
     const files = payload?.files || {};
     Object.entries(files).forEach(([key, file]) => {
-      if (file instanceof File) {
-        fd.append(key, file, file.name);
-      }
+      if (file instanceof File) fd.append(key, file, file.name);
     });
 
-    // ✅ IMPORTANT: don't set Content-Type manually for FormData
     const res = await api.post("/api/company/request", fd);
     return res.data;
   },
 
-  // (Optional - only keep if backend exists)
   async listMyRequests(params = {}) {
     const res = await api.get("/api/company/requests", { params });
     return res.data;
   },
 
-  async getRequestById(id) {
-    const res = await api.get(`/api/company/requests/${id}`);
+  async getRequestById(requestId) {
+    const res = await api.get(`/api/company/requests/${requestId}`);
     return res.data;
+  },
+
+  getDocUrl(requestId, docKey) {
+    return buildFileUrl(`/api/company/requests/${requestId}/docs/${docKey}`);
   },
 
   async getRequestDoc(requestId, docKey) {
-    const res = await api.get(`/api/company/requests/${requestId}/docs/${docKey}`);
+    const res = await api.get(`/api/company/requests/${requestId}/docs/${docKey}`, {
+      responseType: "blob",
+    });
     return res.data;
   },
 
-  // Admin APIs (only keep if backend exists + protected)
-  async listPendingRequests() {
-    const res = await api.get("/api/company/admin/requests/pending");
+  async resolveCompanyId() {
+    const authRole = String(localStorage.getItem("authRole") || "").toUpperCase();
+    const storedUser =
+      readStoredUser() ||
+      (() => {
+        try {
+          const raw = localStorage.getItem("authUser") || "";
+          return raw ? JSON.parse(raw) : null;
+        } catch {
+          return null;
+        }
+      })();
+
+    const storedCompanyId =
+      storedUser?.companyId ||
+      storedUser?.CompanyId ||
+      storedUser?.company?.id ||
+      storedUser?.company?._id ||
+      storedUser?.user?.companyId ||
+      storedUser?.user?.CompanyId ||
+      "";
+
+    if (storedCompanyId) {
+      localStorage.setItem("companyId", String(storedCompanyId));
+      localStorage.setItem("activeCompanyId", String(storedCompanyId));
+      return String(storedCompanyId);
+    }
+
+    const fromStorage = localStorage.getItem("companyId") || localStorage.getItem("activeCompanyId") || "";
+    if (fromStorage) {
+      if (authRole === "COMPANY" && storedCompanyId && String(fromStorage) !== String(storedCompanyId)) {
+        localStorage.setItem("companyId", String(storedCompanyId));
+        localStorage.setItem("activeCompanyId", String(storedCompanyId));
+        return String(storedCompanyId);
+      }
+      return fromStorage;
+    }
+
+    const user = readStoredUser();
+    const email = user?.Email || user?.email || user?.user?.Email || user?.user?.email || "";
+    if (email) {
+      const res = await this.listMyRequests({ email });
+      const first = res?.requests?.[0];
+      if (first?._id) {
+        localStorage.setItem("companyId", first._id);
+        return first._id;
+      }
+    }
+
+    return "";
+  },
+
+  async getCompanyDashboard(companyId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.get(`/api/company/${id}/dashboard`);
     return res.data;
   },
 
-  async approveRequest(requestId, body = {}) {
-    const res = await api.post(`/api/company/admin/requests/${requestId}/approve`, body);
+  async getCompanyAnalytics(companyId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.get(`/api/company/${id}/analytics`);
     return res.data;
   },
 
-  async rejectRequest(requestId, body = {}) {
-    const res = await api.post(`/api/company/admin/requests/${requestId}/reject`, body);
+  async getCompanyEmployees(companyId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.get(`/api/company/${id}/employees`);
+    return res.data;
+  },
+
+  async upsertCompanyEmployee(companyId, payload) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.post(`/api/company/${id}/employees`, payload);
+    return res.data;
+  },
+
+  async deleteCompanyEmployee(companyId, employeeId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.delete(`/api/company/${id}/employees/${employeeId}`);
+    return res.data;
+  },
+
+  async getCompanyHrAccounts(companyId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    try {
+      const res = await api.get(`/api/company/${id}/hr`);
+      return res.data;
+    } catch (error) {
+      if (error?.response?.status !== 404) throw error;
+      const res = await api.get(`/api/company/${id}/employees`);
+      const employees = Array.isArray(res?.data?.employees) ? res.data.employees : [];
+      return {
+        success: true,
+        hrAccess: {
+          companyId: id,
+          companyCode: "",
+          hrAccounts: employees.filter((emp) => String(emp?.type || "").toUpperCase() === "HR"),
+        },
+      };
+    }
+  },
+
+  async upsertCompanyHrAccount(companyId, payload) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const hrPayload = {
+      ...payload,
+      role: payload?.role || "HR",
+      department: payload?.department || "Human Resources",
+      designation: payload?.designation || payload?.role || "HR",
+      type: "HR",
+    };
+
+    try {
+      const res = await api.post(`/api/company/${id}/hr`, hrPayload);
+      return res.data;
+    } catch (error) {
+      if (error?.response?.status !== 404) throw error;
+      const res = await api.post(`/api/company/${id}/employees`, hrPayload);
+      return res.data;
+    }
+  },
+
+  async getHrManagedEmployees(companyId, hrId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id || !hrId) return null;
+    const res = await api.get(`/api/company/${id}/hr/${hrId}/employees`);
+    return res.data;
+  },
+
+  async deleteCompanyHrAccount(companyId, hrId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    try {
+      const res = await api.delete(`/api/company/${id}/hr/${hrId}`);
+      return res.data;
+    } catch (error) {
+      if (error?.response?.status !== 404) throw error;
+      const res = await api.delete(`/api/company/${id}/employees/${hrId}`);
+      return res.data;
+    }
+  },
+
+  async getCompanySubscription(companyId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.get(`/api/company/${id}/subscription`);
+    return res.data;
+  },
+
+  async upsertCompanySubscription(companyId, payload) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.post(`/api/company/${id}/subscription`, payload);
+    return res.data;
+  },
+
+  async getCompanyPayroll(companyId) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.get(`/api/company/${id}/payroll`);
+    return res.data;
+  },
+
+  async submitCompanyPayroll(companyId, payload) {
+    const id = companyId || (await this.resolveCompanyId());
+    if (!id) return null;
+    const res = await api.post(`/api/company/${id}/payroll`, payload);
     return res.data;
   },
 };

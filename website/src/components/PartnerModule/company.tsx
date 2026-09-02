@@ -1,43 +1,31 @@
-import { useEffect, useMemo, useRef, useState, lazy, Suspense } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import CompanySidebar from "./companySidebar";
 import { FaBars } from "react-icons/fa";
+import { getCompanyLabel, loadCompanyBundle } from "./companyHelpers";
 
-export type companyTab = "dashboard" | "analytics" | "salary" | "service" | "subscription";
+export type CompanyTab = "dashboard" | "hr" | "analytics" | "salary" | "service" | "subscription";
 
 const cn = (...a: Array<string | false | undefined | null>) => a.filter(Boolean).join(" ");
 
-
-const CompanyDashboard = lazy(() => import("./companyDashboard"));
-const CompanyAnalytics = lazy(() => import("./companyAnalytics"));
-const CompanySalaryPayment = lazy(() => import("./companySalaryPayment"));
-const CompanyServiceAccess = lazy(() => import("./companyServiceAccess"));
- const CompanySubscription = lazy(() => import("./companySubscription"));
-
-
-const TAB_TO_PATH: Record<companyTab, string> = {
-  dashboard: "/company/dashboard",
-  analytics: "/company/analytics",
-  salary: "/company/salary",
-  service: "/company/service",
-  subscription: "/company/subscription",
-};
-
-/* path -> tab */
-const pathToTab = (path: string): companyTab => {
-  if (path.startsWith("/company/analytics")) return "analytics";
-  if (path.startsWith("/company/salary")) return "salary";
-  if (path.startsWith("/company/service")) return "service";
-  if (path.startsWith("/company/subscription")) return "subscription";
+const pathToTab = (path: string): CompanyTab => {
+  if (path.includes("/company/hr")) return "hr";
+  if (path.includes("/company/analytics")) return "analytics";
+  if (path.includes("/company/salary")) return "salary";
+  if (path.includes("/company/service")) return "service";
+  if (path.includes("/company/subscription")) return "subscription";
   return "dashboard";
 };
 
-export default function company() {
+export default function CompanyLayout() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const [active, setActive] = useState<companyTab>(() => pathToTab(pathname));
+
+  const [active, setActive] = useState<CompanyTab>(() => pathToTab(pathname));
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const mainRef = useRef<HTMLDivElement | null>(null);
+  const [companyName, setCompanyName] = useState(() => localStorage.getItem("companyName") || "Company");
+  const [companyStatus, setCompanyStatus] = useState("Loading");
 
   useEffect(() => {
     setActive(pathToTab(pathname));
@@ -47,15 +35,42 @@ export default function company() {
     mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
   }, [active]);
 
-  const setTab = (t: companyTab) => {
+  useEffect(() => {
+    let alive = true;
+
+    const load = async () => {
+      try {
+        const bundle = await loadCompanyBundle();
+        if (!alive || !bundle?.dashboard?.company) return;
+
+        setCompanyName(getCompanyLabel(bundle.dashboard.company));
+        setCompanyStatus(bundle.dashboard.subscriptionActive ? "Active" : "Inactive");
+      } catch {
+        if (!alive) return;
+        setCompanyName(localStorage.getItem("companyName") || "Company");
+        setCompanyStatus("Unknown");
+      }
+    };
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const setTab = (t: CompanyTab) => {
     setActive(t);
-    navigate(TAB_TO_PATH[t]);
+    // ✅ IMPORTANT: use RELATIVE navigation inside /company route
+    navigate(t === "dashboard" ? "dashboard" : t);
+    setSidebarOpen(false);
   };
 
   const pageTitle = useMemo(() => {
     switch (active) {
       case "dashboard":
         return "Dashboard";
+      case "hr":
+        return "HR Management";
       case "analytics":
         return "Analytics";
       case "salary":
@@ -65,7 +80,7 @@ export default function company() {
       case "subscription":
         return "Subscription";
       default:
-        return "company";
+        return "Company";
     }
   }, [active]);
 
@@ -76,6 +91,8 @@ export default function company() {
         setActive={setTab}
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+        companyName={companyName}
+        companyStatus={companyStatus}
       />
 
       <div className="lg:ml-72">
@@ -92,7 +109,9 @@ export default function company() {
 
             <div className="ml-3 leading-tight">
               <div className="text-lg font-extrabold">{pageTitle}</div>
-              <div className="text-xs text-slate-300">Company Panel • HireMe</div>
+              <div className="text-xs text-slate-300">
+                {companyName} • HireMe • {companyStatus}
+              </div>
             </div>
           </div>
         </div>
@@ -105,26 +124,9 @@ export default function company() {
             "min-h-[calc(100vh-72px)]"
           )}
         >
-          <Suspense
-            fallback={
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div className="h-5 w-48 bg-white/10 rounded mb-4 animate-pulse" />
-                <div className="h-4 w-full bg-white/10 rounded mb-2 animate-pulse" />
-                <div className="h-4 w-4/5 bg-white/10 rounded mb-2 animate-pulse" />
-                <div className="h-4 w-2/3 bg-white/10 rounded animate-pulse" />
-              </div>
-            }
-          >
-            {active === "dashboard" && <CompanyDashboard />}
-            {active === "analytics" && <CompanyAnalytics />}
-            {active === "salary" && <CompanySalaryPayment />}
-            {active === "service" && <CompanyServiceAccess />}
-            {active === "subscription" && <CompanySubscription />}
-          </Suspense>
+          <Outlet />
         </main>
       </div>
     </div>
   );
 }
-
-

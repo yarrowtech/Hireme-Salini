@@ -56,5 +56,27 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+/* ===============================
+   FILE URL BUILDER
+================================ */
+export const buildFileUrl = (url) => {
+  const API_BASE =
+    (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/$/, "");
+
+  if (!url) return "";
+
+  // If wrongly saved with frontend host
+  if (url.startsWith("http://localhost:5173")) {
+    return url.replace("http://localhost:5173", API_BASE);
+  }
+
+  // If already correct absolute URL
+  if (url.startsWith("http")) return url;
+
+  // If relative path
+  if (url.startsWith("/")) return `${API_BASE}${url}`;
+
+  return `${API_BASE}/${url}`;
+};
 
 export default api;
