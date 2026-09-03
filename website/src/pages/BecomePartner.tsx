@@ -26,7 +26,6 @@ import {
   FaLeaf,
   FaRegClock,
   FaUsers,
-  FaUserTie,
   FaChartLine,
   FaHeadset,
 } from "react-icons/fa";
@@ -443,13 +442,13 @@ export default function BecomePartner() {
                     priceYearly={799 * 12} // example yearly discount
                     highlights={[
                       "Up to 25 employees",
-                      "1 HR login",
+                      "Company-managed employee data",
                       "Basic reports",
                       "Email support",
                     ]}
                     stats={[
                       { label: "Employees", value: "25", icon: <FaUsers className="text-slate-200" /> },
-                      { label: "HR Login", value: "1", icon: <FaUserTie className="text-slate-200" /> },
+                      { label: "Employee Management", value: "Company", icon: <FaUsers className="text-slate-200" /> },
                       { label: "Reports", value: "Basic", icon: <FaChartLine className="text-slate-200" /> },
                       { label: "Support", value: "Email", icon: <FaHeadset className="text-slate-200" /> },
                     ]}
@@ -469,13 +468,13 @@ export default function BecomePartner() {
                     priceYearly={9999 * 12}
                     highlights={[
                       "Up to 100 employees",
-                      "3 HR login",
+                      "Company-managed employee data",
                       "Advanced reports",
                       "Priority support",
                     ]}
                     stats={[
                       { label: "Employees", value: "100", icon: <FaUsers className="text-slate-200" /> },
-                      { label: "HR Login", value: "3", icon: <FaUserTie className="text-slate-200" /> },
+                      { label: "Employee Management", value: "Company", icon: <FaUsers className="text-slate-200" /> },
                       { label: "Reports", value: "Advanced", icon: <FaChartLine className="text-slate-200" /> },
                       { label: "Support", value: "Priority", icon: <FaHeadset className="text-slate-200" /> },
                     ]}
@@ -496,13 +495,13 @@ export default function BecomePartner() {
                     priceYearly={19999 * 12}
                     highlights={[
                       "Unlimited employees",
-                      "Custom HR roles",
+                      "Company-managed employee data",
                       "Admin dashboard",
                       "Dedicated manager",
                     ]}
                     stats={[
                       { label: "Employees", value: "Unlimited", icon: <FaUsers className="text-slate-200" /> },
-                      { label: "HR Login", value: "Custom", icon: <FaUserTie className="text-slate-200" /> },
+                      { label: "Employee Management", value: "Company", icon: <FaUsers className="text-slate-200" /> },
                       { label: "Reports", value: "Pro", icon: <FaChartLine className="text-slate-200" /> },
                       { label: "Support", value: "Dedicated", icon: <FaHeadset className="text-slate-200" /> },
                     ]}

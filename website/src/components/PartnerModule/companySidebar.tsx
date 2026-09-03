@@ -5,15 +5,13 @@ import {
   FaTimes,
   FaTachometerAlt,
   FaChartLine,
-  FaUserTie,
   FaUsers,
-  FaKey,
   FaFileAlt,
   FaSignOutAlt,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
-type companyTab = "dashboard" | "hr" | "analytics" | "salary" | "service" | "subscription";
+type companyTab = "dashboard" | "analytics" | "salary" | "service" | "subscription";
 
 const cn = (...a: Array<string | false | undefined | null>) =>
   a.filter(Boolean).join(" ");
@@ -77,10 +75,9 @@ export default function companySidebar({
   const items: Array<{ key: companyTab; label: string; icon: React.ReactNode }> =
     [
       { key: "dashboard", label: "Dashboard", icon: <FaTachometerAlt /> },
-      { key: "hr", label: "HR Management", icon: <FaUserTie /> },
+      { key: "service", label: "Employee Management", icon: <FaUsers /> },
       { key: "analytics", label: "Analytics", icon: <FaChartLine /> },
       { key: "salary", label: "Salary & Payments", icon: <FaUsers /> },
-      { key: "service", label: "Service Access", icon: <FaKey /> },
       { key: "subscription", label: "Subscription Management", icon: <FaFileAlt /> },
     ];
 

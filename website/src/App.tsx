@@ -66,7 +66,6 @@ function App() {
       <Route path="/company" element={<CompanyLayout />}>
     <Route index element={<Navigate to="dashboard" replace />} />
     <Route path="dashboard" element={<CompanyDashboard />} />
-    <Route path="hr" element={<CompanyDashboard />} />
     <Route path="analytics" element={<CompanyAnalytics />} />
     <Route path="salary" element={<CompanySalaryPayment />} />
     <Route path="service" element={<CompanyServiceAccess />} />

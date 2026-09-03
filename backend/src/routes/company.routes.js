@@ -11,10 +11,6 @@ const {
   getCompanyEmployees,
   upsertCompanyEmployees,
   deleteCompanyEmployee,
-  getCompanyHrAccounts,
-  upsertCompanyHrAccount,
-  deleteCompanyHrAccount,
-  getHrManagedEmployees,
   getCompanySubscription,
   upsertCompanySubscription,
   getCompanyPayroll,
@@ -52,10 +48,6 @@ router.get("/:companyId/analytics", auth, getCompanyAnalytics);
 router.get("/:companyId/employees", auth, getCompanyEmployees);
 router.post("/:companyId/employees", auth, upsertCompanyEmployees);
 router.delete("/:companyId/employees/:employeeId", auth, deleteCompanyEmployee);
-router.get("/:companyId/hr", auth, getCompanyHrAccounts);
-router.post("/:companyId/hr", auth, upsertCompanyHrAccount);
-router.delete("/:companyId/hr/:hrId", auth, deleteCompanyHrAccount);
-router.get("/:companyId/hr/:hrId/employees", auth, getHrManagedEmployees);
 router.get("/:companyId/subscription", auth, getCompanySubscription);
 router.post("/:companyId/subscription", auth, upsertCompanySubscription);
 router.get("/:companyId/payroll", auth, getCompanyPayroll);

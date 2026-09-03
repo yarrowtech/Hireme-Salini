@@ -12,14 +12,13 @@ import {
   FaShieldAlt,
   FaEnvelope,
   FaBriefcase,
-  FaUserTie,
   FaArrowLeft,
 } from "react-icons/fa";
 
 // ✅ TS/Vite import
 import { authApi } from "../api/auth.api";
 
-type LoginRole = "EMPLOYEE" | "HR" | "COMPANY";
+type LoginRole = "EMPLOYEE" | "COMPANY";
 
 /* -------------------- helpers -------------------- */
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v || "").trim());
@@ -39,7 +38,6 @@ function ForgotPasswordModal({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isCompany = role === "COMPANY";
-  const isHr = role === "HR";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,8 +50,7 @@ function ForgotPasswordModal({
       if (!companyCode.trim()) return toast.error("Company code is required");
       if (!is3DigitCode(companyCode)) return toast.error("Company code must be exactly 3 digits");
     } else {
-      // EMPLOYEE / HR: username + code
-      if (!username.trim()) return toast.error(isHr ? "HR username is required" : "Username is required");
+      if (!username.trim()) return toast.error("Username is required");
       if (username.trim().length < 3) return toast.error("Username must be at least 3 characters long");
 
       if (!companyCode.trim()) return toast.error("Company code is required");
@@ -64,7 +61,6 @@ function ForgotPasswordModal({
     try {
       // 🔧 backend later:
       // if (role === "EMPLOYEE") await authApi.forgotEmployee({ username, companyCode })
-      // if (role === "HR") await authApi.forgotHr({ username, companyCode })
       // if (role === "COMPANY") await authApi.forgotCompany({ email, companyCode })
       await new Promise((r) => setTimeout(r, 900));
 
@@ -93,7 +89,7 @@ function ForgotPasswordModal({
           </div>
           <h2 className="text-2xl font-bold text-blue-800 mb-2">Forgot Access</h2>
           <p className="text-blue-600 text-sm">
-            {role === "EMPLOYEE" ? "Employee reset" : role === "HR" ? "HR reset" : "Company reset"}
+            {role === "EMPLOYEE" ? "Employee reset" : "Company reset"}
           </p>
         </div>
 
@@ -136,11 +132,11 @@ function ForgotPasswordModal({
               <div className="space-y-2">
                 <label className="flex items-center gap-2 text-sm font-medium text-blue-700">
                   <FaUser className="text-blue-500" />
-                  {isHr ? "HR Username" : "Username"}
+                  Username
                 </label>
                 <input
                   type="text"
-                  placeholder={isHr ? "Enter HR username" : "Enter your username"}
+                  placeholder="Enter your username"
                   className="w-full p-4 bg-white/80 border border-blue-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-blue-800 placeholder-blue-400 transition-all duration-300"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -190,14 +186,14 @@ function ForgotPasswordModal({
 export default function Login({ setShowLogin }: { setShowLogin: (value: boolean) => void }) {
   const [role, setRole] = useState<LoginRole>("EMPLOYEE");
 
-  // employee & HR fields
+  // Employee fields
   const [username, setUsername] = useState("");
   const [companyCode, setCompanyCode] = useState("");
 
   // company fields (NO OTP now)
   const [companyEmail, setCompanyEmail] = useState("");
 
-  // shared for EMPLOYEE/HR
+  // Shared employee password field
   const [password, setPassword] = useState("");
   const [showForgot, setShowForgot] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -208,29 +204,24 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
   const navigate = useNavigate();
 
   const isCompany = role === "COMPANY";
-  const isHr = role === "HR";
 
   const icon = useMemo(() => {
     if (role === "EMPLOYEE") return <FaUser className="text-lg text-white" />;
-    if (role === "HR") return <FaUserTie className="text-lg text-white" />;
     return <FaBriefcase className="text-lg text-white" />;
   }, [role]);
 
   const title = useMemo(() => {
     if (role === "EMPLOYEE") return "Employee Sign In";
-    if (role === "HR") return "HR Sign In";
     return "Company Sign In";
   }, [role]);
 
   const subtitle = useMemo(() => {
     if (role === "EMPLOYEE") return "Login with username + company code + password";
-    if (role === "HR") return "Login with HR username + company code + password";
     return "Login with company email + company code";
   }, [role]);
 
   const goBySelectedRole = () => {
     if (role === "COMPANY") navigate("/company/dashboard");
-    else if (role === "HR") navigate("/hr/dashboard");
     else navigate("/employee/dashboard");
   };
 
@@ -258,7 +249,6 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
 
           const r = me.user.role;
           if (r === "SUPER_ADMIN" || r === "ADMIN") navigate("/admin/dashboard");
-          else if (r === "HR") navigate("/hr/dashboard");
           else if (r === "COMPANY") navigate("/company/dashboard");
           else navigate("/employee/dashboard");
         }
@@ -329,8 +319,8 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
       return;
     }
 
-    // EMPLOYEE / HR password based
-    if (!username.trim()) return toast.error(isHr ? "HR username is required" : "Username is required");
+    // Employee password login
+    if (!username.trim()) return toast.error("Username is required");
     if (username.trim().length < 3) return toast.error("Username must be at least 3 characters long");
 
     if (!companyCode.trim()) return toast.error("Company code is required");
@@ -393,7 +383,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
         </div>
 
         {/* Role Tabs */}
-        <div className="mb-4 grid grid-cols-3 gap-2">
+        <div className="mb-4 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => setRole("EMPLOYEE")}
@@ -405,18 +395,6 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
             ].join(" ")}
           >
             Employee
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("HR")}
-            className={[
-              "rounded-2xl px-3 py-3 font-extrabold text-xs sm:text-sm transition border",
-              role === "HR"
-                ? "bg-white/90 border-blue-300 text-blue-800 shadow"
-                : "bg-white/50 border-blue-200 text-blue-700 hover:bg-white/70",
-            ].join(" ")}
-          >
-            HR
           </button>
           <button
             type="button"
@@ -500,15 +478,15 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
             </>
           ) : (
             <>
-              {/* EMPLOYEE / HR username */}
+              {/* Employee username */}
               <div className="space-y-1">
                 <label className="flex items-center gap-2 text-sm font-medium text-blue-700">
                   <FaUser className="text-blue-500" />
-                  {isHr ? "HR Username" : "Username"}
+                  Username
                 </label>
                 <input
                   type="text"
-                  placeholder={isHr ? "Enter HR username" : "Enter your username"}
+                  placeholder="Enter your username"
                   className="w-full p-3 bg-white/80 border border-blue-200 rounded-2xl outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent text-blue-800 placeholder-blue-400 transition-all duration-300"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -533,7 +511,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
                 />
               </div>
 
-              {/* Password (only for EMPLOYEE/HR) */}
+              {/* Employee password */}
               <div className="space-y-1">
                 <label className="flex items-center gap-2 text-sm font-medium text-blue-700">
                   <FaLock className="text-blue-500" />
@@ -568,7 +546,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
                 </button>
 
                 <div className="text-xs text-blue-600/70 font-semibold">
-                  {role === "EMPLOYEE" ? "Employee Portal" : "HR Portal"}
+                  Employee Portal
                 </div>
               </div>
 

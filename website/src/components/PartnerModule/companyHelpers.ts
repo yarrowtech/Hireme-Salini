@@ -243,11 +243,10 @@ export async function loadCompanyBundle(companyId?: string) {
   const resolvedCompanyId = companyId || (await resolveCompanyId());
   if (!resolvedCompanyId) return null;
 
-  const [dashboardRes, analyticsRes, employeesRes, hrRes, subscriptionRes, payrollRes] = await Promise.all([
+  const [dashboardRes, analyticsRes, employeesRes, subscriptionRes, payrollRes] = await Promise.all([
     companyApi.getCompanyDashboard(resolvedCompanyId).catch((error) => ({ error })),
     companyApi.getCompanyAnalytics(resolvedCompanyId).catch((error) => ({ error })),
     companyApi.getCompanyEmployees(resolvedCompanyId).catch((error) => ({ error })),
-    companyApi.getCompanyHrAccounts(resolvedCompanyId).catch((error) => ({ error })),
     companyApi.getCompanySubscription(resolvedCompanyId).catch((error) => ({ error })),
     companyApi.getCompanyPayroll(resolvedCompanyId).catch((error) => ({ error })),
   ]);
@@ -257,7 +256,6 @@ export async function loadCompanyBundle(companyId?: string) {
     dashboard: dashboardRes?.success ? dashboardRes : null,
     analytics: analyticsRes?.success ? analyticsRes : null,
     employees: employeesRes?.success ? employeesRes : null,
-    hrAccess: hrRes?.success ? hrRes.hrAccess : null,
     subscription: subscriptionRes?.success ? subscriptionRes : null,
     payroll: payrollRes?.success ? payrollRes : null,
   };

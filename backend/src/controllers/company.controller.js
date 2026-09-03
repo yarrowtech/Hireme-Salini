@@ -561,8 +561,13 @@ async function getCompanyEmployees(req, res, next) {
       return res.status(400).json({ success: false, message: "Invalid companyId" });
     }
 
-    const employees = await EmployeeProfile.find({ companyId }).lean();
-    return res.json({ success: true, employees: employees.filter((emp) => !isHrRecordLike(emp)) });
+    const [profileEmployees, serviceAccess] = await Promise.all([
+      EmployeeProfile.find({ companyId }).lean(),
+      CompanyServiceAccess.findOne({ companyId }).lean(),
+    ]);
+    const serviceEmployees = Array.isArray(serviceAccess?.employees) ? serviceAccess.employees : [];
+    const employees = dedupeAccountsById([...profileEmployees, ...serviceEmployees]);
+    return res.json({ success: true, employees: employees.filter((employee) => !isHrRecordLike(employee)) });
   } catch (err) {
     next(err);
   }

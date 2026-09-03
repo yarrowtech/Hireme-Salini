@@ -157,7 +157,7 @@ export default function Home() {
                                     <FaRocket className="text-2xl text-white" />
                                 </div>
                                 <p className="text-slate-300 text-lg leading-relaxed">
-                                    Transform traditional HR operations into intelligent, automated workflows that scale with your business growth and adapt to changing workforce dynamics.
+                                    Transform workforce operations into intelligent, automated workflows that scale with your business growth and adapt to changing employee needs.
                                 </p>
                             </div>
                             
@@ -195,7 +195,7 @@ export default function Home() {
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-blue-900/30 to-transparent" />
                             <div className="absolute bottom-6 left-6 right-6">
                                 <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20">
-                                    <p className="text-white font-semibold text-lg">Transforming HR Since 2024</p>
+                                    <p className="text-white font-semibold text-lg">Transforming Workplaces Since 2024</p>
                                     <p className="text-slate-300 text-sm">Leading innovation in workforce management</p>
                                 </div>
                             </div>
@@ -214,7 +214,7 @@ export default function Home() {
                         
                         <div className="space-y-6">
                             <p className="text-slate-300 text-lg leading-relaxed">
-                                We're building the next generation of HR technology that seamlessly connects organizations with their most valuable asset - their people. Through intelligent automation and predictive analytics, we're making workforce management more efficient, transparent, and empowering.
+                                We're building workforce technology that helps companies manage their people directly. Through intelligent automation and predictive analytics, employee management becomes more efficient, transparent, and empowering.
                             </p>
                             
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -252,7 +252,7 @@ export default function Home() {
                         Our <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">Vision</span>
                     </h2>
                     <p className="text-blue-900/90 text-lg font-medium">
-                        We envision a future where HR management is seamless, transparent, and empowering for all stakeholders involved in the employment ecosystem.
+                        We envision a future where company-managed employee data is seamless, transparent, and empowering for everyone involved in the employment ecosystem.
                     </p>
                 </div>
                 <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -263,13 +263,13 @@ export default function Home() {
                     />
                     <VisionCard 
                         icon={<FaCheckCircle className="text-blue-500 text-3xl" />} 
-                        title="Scalable HR Infrastructure" 
+                        title="Scalable Workforce Infrastructure"
                         desc="Modular solutions that grow with your company, from startup to enterprise scale." 
                     />
                     <VisionCard 
                         icon={<FaCheckCircle className="text-blue-500 text-3xl" />} 
                         title="Transparent Operations" 
-                        desc="Clear visibility into HR processes for both administrators and employees." 
+                        desc="Clear visibility into employee processes for companies and employees."
                     />
                     <VisionCard 
                         icon={<FaCheckCircle className="text-blue-500 text-3xl" />} 
@@ -299,7 +299,7 @@ export default function Home() {
                         Our <span className="bg-gradient-to-r from-blue-500 to-blue-600 bg-clip-text text-transparent">Services</span>
                     </h2>
                     <p className="text-blue-900/90 text-lg font-medium">
-                        Comprehensive HR solutions designed to meet the diverse needs of modern organizations and their workforce.
+                        Comprehensive workforce solutions designed to meet the diverse needs of modern organizations and their employees.
                     </p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
@@ -312,7 +312,7 @@ export default function Home() {
                         description="Flexible subscription plans with transparent pricing to unlock full platform functionality based on your organization's needs." 
                     />
                     <ServiceCard 
-                        title="HR Dashboard" 
+                        title="Employee Management"
                         description="Comprehensive employee management with real-time tracking, advanced search, document uploads, and status monitoring." 
                     />
                     <ServiceCard 
@@ -325,7 +325,7 @@ export default function Home() {
                     />
                     <ServiceCard 
                         title="Analytics & Reporting" 
-                        description="Powerful insights into workforce trends, productivity metrics, and HR operational efficiency." 
+                        description="Powerful insights into workforce trends, productivity metrics, and employee operations."
                     />
                 </div>
             </div>
@@ -354,19 +354,19 @@ export default function Home() {
                         <tbody className="bg-white divide-y divide-blue-200">
                             <PlanRow 
                                 plan="Starter" 
-                                features={["Up to 25 employees", "1 HR login", "Basic reports", "Email support"]} 
+                                features={["Up to 25 employees", "Company-managed employee data", "Basic reports", "Email support"]}
                                 ideal="Small teams & startups" 
                                 price="₹999/month" 
                             />
                             <PlanRow 
                                 plan="Professional" 
-                                features={["Up to 100 employees", "3 HR logins", "Advanced analytics", "Priority support"]} 
+                                features={["Up to 100 employees", "Company-managed employee data", "Advanced analytics", "Priority support"]}
                                 ideal="Growing businesses" 
                                 price="₹9,999/month" 
                             />
                             <PlanRow 
                                 plan="Enterprise" 
-                                features={["Unlimited employees", "Custom HR roles", "Admin dashboard", "API access", "Dedicated manager"]} 
+                                features={["Unlimited employees", "Company-managed employee data", "Admin dashboard", "API access", "Dedicated manager"]}
                                 ideal="Large organizations" 
                                 price="Custom Pricing" 
                             />

@@ -4,12 +4,11 @@ import CompanySidebar from "./companySidebar";
 import { FaBars } from "react-icons/fa";
 import { getCompanyLabel, loadCompanyBundle } from "./companyHelpers";
 
-export type CompanyTab = "dashboard" | "hr" | "analytics" | "salary" | "service" | "subscription";
+export type CompanyTab = "dashboard" | "analytics" | "salary" | "service" | "subscription";
 
 const cn = (...a: Array<string | false | undefined | null>) => a.filter(Boolean).join(" ");
 
 const pathToTab = (path: string): CompanyTab => {
-  if (path.includes("/company/hr")) return "hr";
   if (path.includes("/company/analytics")) return "analytics";
   if (path.includes("/company/salary")) return "salary";
   if (path.includes("/company/service")) return "service";
@@ -69,8 +68,6 @@ export default function CompanyLayout() {
     switch (active) {
       case "dashboard":
         return "Dashboard";
-      case "hr":
-        return "HR Management";
       case "analytics":
         return "Analytics";
       case "salary":

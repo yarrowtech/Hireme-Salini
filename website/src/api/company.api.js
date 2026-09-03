@@ -141,68 +141,6 @@ export const companyApi = {
     return res.data;
   },
 
-  async getCompanyHrAccounts(companyId) {
-    const id = companyId || (await this.resolveCompanyId());
-    if (!id) return null;
-    try {
-      const res = await api.get(`/api/company/${id}/hr`);
-      return res.data;
-    } catch (error) {
-      if (error?.response?.status !== 404) throw error;
-      const res = await api.get(`/api/company/${id}/employees`);
-      const employees = Array.isArray(res?.data?.employees) ? res.data.employees : [];
-      return {
-        success: true,
-        hrAccess: {
-          companyId: id,
-          companyCode: "",
-          hrAccounts: employees.filter((emp) => String(emp?.type || "").toUpperCase() === "HR"),
-        },
-      };
-    }
-  },
-
-  async upsertCompanyHrAccount(companyId, payload) {
-    const id = companyId || (await this.resolveCompanyId());
-    if (!id) return null;
-    const hrPayload = {
-      ...payload,
-      role: payload?.role || "HR",
-      department: payload?.department || "Human Resources",
-      designation: payload?.designation || payload?.role || "HR",
-      type: "HR",
-    };
-
-    try {
-      const res = await api.post(`/api/company/${id}/hr`, hrPayload);
-      return res.data;
-    } catch (error) {
-      if (error?.response?.status !== 404) throw error;
-      const res = await api.post(`/api/company/${id}/employees`, hrPayload);
-      return res.data;
-    }
-  },
-
-  async getHrManagedEmployees(companyId, hrId) {
-    const id = companyId || (await this.resolveCompanyId());
-    if (!id || !hrId) return null;
-    const res = await api.get(`/api/company/${id}/hr/${hrId}/employees`);
-    return res.data;
-  },
-
-  async deleteCompanyHrAccount(companyId, hrId) {
-    const id = companyId || (await this.resolveCompanyId());
-    if (!id) return null;
-    try {
-      const res = await api.delete(`/api/company/${id}/hr/${hrId}`);
-      return res.data;
-    } catch (error) {
-      if (error?.response?.status !== 404) throw error;
-      const res = await api.delete(`/api/company/${id}/employees/${hrId}`);
-      return res.data;
-    }
-  },
-
   async getCompanySubscription(companyId) {
     const id = companyId || (await this.resolveCompanyId());
     if (!id) return null;

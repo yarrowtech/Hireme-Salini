@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  FaShieldAlt,
   FaLock,
   FaCheckCircle,
   FaTimesCircle,
@@ -13,8 +12,8 @@ import {
   FaIdBadge,
   FaBuilding,
   FaPhoneAlt,
-  FaUserTie,
   FaUser,
+  FaUsers,
   FaKey,
   FaEye,
   FaEyeSlash,
@@ -80,14 +79,6 @@ function daysLeft(expiresAt: string) {
   return daysLeft(sub.expiresAt) >= 0 ? "ACTIVE" : "EXPIRED";
 }
 
-function isHrRecord(emp: any) {
-  return (
-    emp?.type === "HR" ||
-    String(emp?.role || "").toUpperCase() === "HR" ||
-    String(emp?.department || "").toUpperCase() === "HUMAN RESOURCES"
-  );
-}
-
 /* ---------------- Page ---------------- */
 
 export default function companyEmployeeManagement() {
@@ -146,7 +137,6 @@ export default function companyEmployeeManagement() {
       }
 
       const dashboard = bundle?.dashboard || null;
-      const hrAccess = bundle?.hrAccess || dashboard?.hrAccess || null;
       const backendSubscription = getResolvedSubscription({
         dashboard,
         subscription: bundle?.subscription,
@@ -181,21 +171,22 @@ export default function companyEmployeeManagement() {
           (!subscription?.endsAt || new Date(String(subscription.endsAt)).getTime() >= Date.now()));
       setLiveSubscriptionActive(Boolean(subscriptionActive));
 
-      setCompanyCode(String(dashboard?.company?.companyCode || hrAccess?.companyCode || serviceAccess?.companyCode || ""));
+      setCompanyCode(String(dashboard?.company?.companyCode || serviceAccess?.companyCode || ""));
 
-      const list = Array.isArray(hrAccess?.hrAccounts)
-        ? hrAccess.hrAccounts
+      const employeeResponse = await companyApi.getCompanyEmployees(companyId);
+      const list = Array.isArray(employeeResponse?.employees) && employeeResponse.employees.length
+        ? employeeResponse.employees
         : Array.isArray(serviceAccess?.employees)
-        ? serviceAccess.employees.filter(isHrRecord)
+        ? serviceAccess.employees
         : [];
 
       setEmployees(
         list.map((e: any, idx: number) => ({
           id: e.id || e.employeeId || `EMP-${idx + 1}`,
-          companyCode: e.companyCode || dashboard?.company?.companyCode || hrAccess?.companyCode || serviceAccess?.companyCode || "",
-          name: e.name || e.employeeName || "HR",
-          role: e.designation || e.role || "HR",
-          department: e.department || "Human Resources",
+          companyCode: e.companyCode || dashboard?.company?.companyCode || serviceAccess?.companyCode || "",
+          name: e.name || e.employeeName || "Employee",
+          role: e.designation || e.role || "Employee",
+          department: e.department || "General",
           contact: e.contact || e.email || e.phone || "-",
           email: e.email || "",
           username: e.username || "",
@@ -301,12 +292,12 @@ export default function companyEmployeeManagement() {
     if (companyId) {
       const isEmail = form.contact.includes("@");
       try {
-        const res = await companyApi.upsertCompanyHrAccount(companyId, {
+        const res = await companyApi.upsertCompanyEmployee(companyId, {
           id: form.id,
           companyCode: form.companyCode,
           name: form.name,
-          role: "HR",
-          department: "Human Resources",
+          role: form.role.trim(),
+          department: form.department.trim(),
           contact: form.contact,
           email: form.email.trim().toLowerCase(),
           phone: isEmail ? "" : form.contact,
@@ -323,7 +314,7 @@ export default function companyEmployeeManagement() {
           });
         }
       } catch (error: any) {
-        alert(error?.response?.data?.message || "Failed to save HR account.");
+        alert(error?.response?.data?.message || "Failed to save employee.");
         return;
       }
       await refreshFromBackend();
@@ -336,7 +327,7 @@ export default function companyEmployeeManagement() {
     if (!confirm("Delete this employee?")) return;
     const companyId = await companyApi.resolveCompanyId();
     if (companyId) {
-      await companyApi.deleteCompanyHrAccount(companyId, id);
+      await companyApi.deleteCompanyEmployee(companyId, id);
       await refreshFromBackend();
     }
   };
@@ -351,10 +342,10 @@ export default function companyEmployeeManagement() {
       };
       const companyId = await companyApi.resolveCompanyId();
       if (companyId) {
-        await companyApi.upsertCompanyHrAccount(companyId, {
+        await companyApi.upsertCompanyEmployee(companyId, {
           ...updated,
-          role: "HR",
-          department: "Human Resources",
+          role: updated.role,
+          department: updated.department,
         });
         await refreshFromBackend();
       }
@@ -368,13 +359,13 @@ export default function companyEmployeeManagement() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <div className="flex items-center gap-2 text-white">
-              <FaShieldAlt className="text-cyan-300" />
-              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">HR Management</h1>
+              <FaUser className="text-cyan-300" />
+              <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">Employee Management</h1>
             </div>
 
             <p className="mt-2 text-sm text-slate-300 leading-relaxed max-w-2xl">
               Only companies with an <span className="text-white font-semibold">active subscription</span> can access
-              HR management features.
+              employee management features.
             </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -449,8 +440,8 @@ export default function companyEmployeeManagement() {
                   {loading
                     ? "Fetching the latest employee and subscription data from the backend."
                     : accessAllowed
-                  ? "You can manage HR accounts here."
-                    : "Purchase/renew subscription to unlock HR management."}
+                  ? "You can manage employee records here."
+                    : "Purchase or renew a subscription to unlock employee management."}
                 </div>
               </div>
             </div>
@@ -468,7 +459,7 @@ export default function companyEmployeeManagement() {
                   onClick={openAddModal}
                   className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border transition bg-white/5 hover:bg-white/10 border-white/10 text-white"
                 >
-                  <FaPlus /> Add HR Account
+                  <FaPlus /> Add Employee
                 </button>
               )}
             </div>
@@ -479,7 +470,7 @@ export default function companyEmployeeManagement() {
       {/* ================= Locked / Loading / Table ================= */}
       {loading ? (
         <div className="mt-6 rounded-3xl border border-cyan-400/20 bg-cyan-500/10 p-6 text-cyan-100">
-          Loading live HR and subscription data from the backend...
+          Loading employee and subscription data from the backend...
         </div>
       ) : !accessAllowed ? (
         <div className="mt-6 rounded-3xl border border-red-500/20 bg-red-500/5 p-6">
@@ -489,9 +480,9 @@ export default function companyEmployeeManagement() {
             </div>
 
             <div className="min-w-0">
-              <h2 className="text-lg font-extrabold text-white">HR Management Locked</h2>
+              <h2 className="text-lg font-extrabold text-white">Employee Management Locked</h2>
               <p className="text-sm text-slate-300 mt-1 max-w-2xl">
-                Your subscription is not active. Renew/purchase a plan to access HR management.
+                Your subscription is not active. Renew or purchase a plan to manage employee data.
               </p>
 
               <div className="mt-4">
@@ -510,8 +501,8 @@ export default function companyEmployeeManagement() {
         <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-white font-extrabold text-lg">
-              <FaUserTie className="text-cyan-300" />
-              HR Accounts
+              <FaUsers className="text-cyan-300" />
+              Employees
             </div>
 
             <div className="flex flex-wrap gap-2 items-center">
@@ -530,7 +521,7 @@ export default function companyEmployeeManagement() {
                 className="inline-flex items-center gap-2 rounded-2xl border border-cyan-400/30 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-100 font-semibold px-4 py-2 transition"
               >
                 <FaPlus />
-                Add HR Account
+                Add Employee
               </button>
             </div>
           </div>
@@ -555,7 +546,7 @@ export default function companyEmployeeManagement() {
                     <th className="text-left px-4 py-3">Name</th>
                     <th className="text-left px-4 py-3">
                       <span className="inline-flex items-center gap-2">
-                        <FaUserTie className="text-slate-400" /> Role
+                        <FaIdBadge className="text-slate-400" /> Role
                       </span>
                     </th>
                     <th className="text-left px-4 py-3">
@@ -653,7 +644,7 @@ export default function companyEmployeeManagement() {
 
       {/* ================= Add/Edit Modal (with scroll) ================= */}
       {modalOpen && (
-        <ModalShell title={editId ? "Edit HR Account" : "Add HR Account"} onClose={closeModal}>
+        <ModalShell title={editId ? "Edit Employee" : "Add Employee"} onClose={closeModal}>
           {/* ✅ Modal body scroll system */}
           <div className="max-h-[60vh] overflow-y-auto pr-1">
             <div className="grid gap-2 sm:grid-cols-2">
@@ -690,7 +681,7 @@ export default function companyEmployeeManagement() {
                   value={form.role}
                   onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none"
-                  placeholder="HR / Manager / Staff"
+                  placeholder="Developer / Manager / Staff"
                 />
               </Field>
 
@@ -724,7 +715,7 @@ export default function companyEmployeeManagement() {
                   value={form.email}
                   onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-white outline-none"
-                  placeholder="hr@company.com"
+                  placeholder="employee@company.com"
                 />
               </Field>
 
@@ -784,7 +775,7 @@ export default function companyEmployeeManagement() {
               onClick={saveEmployee}
               className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-100 font-semibold px-4 py-2 transition"
             >
-              {editId ? "Save Changes" : "Add HR Account"}
+              {editId ? "Save Changes" : "Add Employee"}
             </button>
           </div>
         </ModalShell>
@@ -872,7 +863,7 @@ function CredentialModal({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `hr-credentials-${credential.username || "account"}.csv`;
+    a.download = `employee-credentials-${credential.username || "account"}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -885,7 +876,7 @@ function CredentialModal({
         <div className="text-lg font-extrabold text-white">Credentials Ready</div>
         <p className="mt-2 text-sm text-slate-300">
           {credential.generated
-            ? "Temporary login credentials were generated for this HR account."
+            ? "Temporary login credentials were generated for this employee."
             : "Login credentials were saved."}
         </p>
 

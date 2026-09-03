@@ -1,5 +1,5 @@
 // src/pages/company/CompanyDashboard.tsx
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   FaBuilding,
   FaEnvelope,
@@ -7,8 +7,6 @@ import {
   FaMapMarkerAlt,
   FaCalendar,
   FaUsers,
-  FaUserTie,
-  FaPlus,
   FaChartLine,
   FaArrowUp,
   FaArrowDown,
@@ -36,8 +34,6 @@ import {
 
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import companyApi from "../../api/company.api.js";
-import { toast } from "react-toastify";
-import HrDetailPanel from "./HrDetailPanel";
 import {
   getCompanyLabel,
   getResolvedPlanPrice,
@@ -104,19 +100,6 @@ type Company = {
   billingCycle?: "MONTHLY" | "YEARLY";
   documents?: BackendCompany["documents"];
   subscriptionActive: boolean;
-};
-
-type HRUser = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  username: string;
-  status: "ACTIVE" | "INACTIVE";
-  createdAt: string;
-  hasLogin?: boolean;
-  loginUpdatedAt?: string | null;
-  passwordUpdatedAt?: string | null;
 };
 
 type Employee = {
@@ -202,33 +185,6 @@ function backendStatusToUI(status: BackendCompany["status"]): CompanyStatusUI {
   if (status === "APPROVED") return "active";
   if (status === "PENDING") return "pending";
   return "inactive";
-}
-
-function isHrServiceRecord(emp: any) {
-  return (
-    emp?.type === "HR" ||
-    String(emp?.role || "").toUpperCase() === "HR" ||
-    String(emp?.department || "").toUpperCase() === "HUMAN RESOURCES"
-  );
-}
-
-function normalizeHrRecord(emp: any, fallbackCreatedAt = ""): HRUser {
-  return {
-    id: String(emp?.id || emp?.employeeId || emp?._id || `hr-${Date.now()}`),
-    name: String(emp?.name || emp?.employeeName || "HR"),
-    email: String(emp?.email || emp?.contact || "-"),
-    phone: String(emp?.phone || "-"),
-    username: String(emp?.username || "-"),
-    status: String(emp?.status || "ACTIVE").toUpperCase() === "INACTIVE" ? "INACTIVE" : "ACTIVE",
-    hasLogin: Boolean(emp?.hasLogin || emp?.userId || String(emp?.username || "").trim()),
-    loginUpdatedAt: emp?.loginUpdatedAt || null,
-    passwordUpdatedAt: emp?.passwordUpdatedAt || null,
-    createdAt: emp?.createdAt
-      ? new Date(emp.createdAt).toISOString().slice(0, 10)
-      : fallbackCreatedAt
-      ? new Date(fallbackCreatedAt).toISOString().slice(0, 10)
-      : "-",
-  };
 }
 
 function normalizeEmployeeRecord(emp: any, index: number): Employee {
@@ -397,14 +353,14 @@ function InfoRow({
  * MAIN
  ------------------------------*/
 export default function CompanyDashboardOneCompany() {
-  type Page = "dashboard" | "hr" | "employees";
+  type Page = "dashboard" | "employees";
   const location = useLocation();
   const navigate = useNavigate();
-  const resolvePage = (pathname: string): Page => (pathname.includes("/company/hr") ? "hr" : "dashboard");
-  const [page, setPage] = useState<Page>(() => resolvePage(location.pathname));
+  const resolvePage = (): Page => "dashboard";
+  const [page, setPage] = useState<Page>(resolvePage);
 
   useEffect(() => {
-    setPage(resolvePage(location.pathname));
+    setPage(resolvePage());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
@@ -434,8 +390,6 @@ export default function CompanyDashboardOneCompany() {
     subscriptionActive: false,
   });
 
-  const [hrUsers, setHrUsers] = useState<HRUser[]>([]);
-  const [detailHrId, setDetailHrId] = useState<string | null>(null);
   const [employeesData, setEmployeesData] = useState<Employee[]>([]);
   const [attendanceMap, setAttendanceMap] = useState<Record<string, EmployeeAttendance>>({});
   const [analytics, setAnalytics] = useState<AnalyticsRow[]>([]);
@@ -498,7 +452,6 @@ export default function CompanyDashboardOneCompany() {
       const analyticsRes = bundle?.analytics || null;
       const payrollRes = bundle?.payroll || null;
       const employeesRes = bundle?.employees || null;
-      const hrAccessRes = bundle?.hrAccess || dashboardRes?.hrAccess || analyticsRes?.analytics?.hrAccess || null;
       const subscription = getResolvedSubscription({
         dashboard: dashboardRes,
         subscription: bundle?.subscription,
@@ -613,17 +566,8 @@ export default function CompanyDashboardOneCompany() {
       );
       setAnalytics(analyticRows);
 
-      const serviceAccessEmployees = Array.isArray(dashboardRes?.serviceAccess?.employees)
-        ? dashboardRes.serviceAccess.employees
-        : Array.isArray(analyticsRes?.analytics?.serviceAccess?.employees)
-        ? analyticsRes.analytics.serviceAccess.employees
-        : [];
-      const staffEntries = employees.filter((emp: any) => !isHrServiceRecord(emp));
-      const hrEntries = Array.isArray(hrAccessRes?.hrAccounts) ? hrAccessRes.hrAccounts : serviceAccessEmployees.filter(isHrServiceRecord);
-
-      setEmployeesData(staffEntries.map(normalizeEmployeeRecord));
+      setEmployeesData(employees.map(normalizeEmployeeRecord));
       setAttendanceMap({});
-      setHrUsers(hrEntries.map((emp: any) => normalizeHrRecord(emp, row.createdAt || "")));
     } catch (e: any) {
       console.error("❌ Company dashboard load error:", e);
 
@@ -662,16 +606,6 @@ export default function CompanyDashboardOneCompany() {
 
   const attendancePct = (a: EmployeeAttendance) => (!a.totalDays ? 0 : Math.round((a.present / a.totalDays) * 100));
 
-  /** Plan -> HR LIMIT (works using REAL plan) */
-  const effectivePlanKey = normalizePlanKey(subscriptionMeta?.planKey || company.subscriptionPlan);
-  const planHrLimit = useMemo(() => {
-    if (effectivePlanKey === "STARTER") return 1;
-    if (effectivePlanKey === "PROFESSIONAL") return 3;
-    return 999;
-  }, [effectivePlanKey]);
-
-  const finalHrLimit = planHrLimit;
-  const limitReached = hrUsers.length >= finalHrLimit;
   const effectiveSubscriptionActive = Boolean(
     company.subscriptionActive ||
       liveSubscriptionActive ||
@@ -679,89 +613,9 @@ export default function CompanyDashboardOneCompany() {
         (!subscriptionMeta?.expiresAt || new Date(String(subscriptionMeta.expiresAt)).getTime() >= Date.now()))
   );
 
-  /** HR add/delete (mock only) */
-  const [hrName, setHrName] = useState("");
-  const [hrEmail, setHrEmail] = useState("");
-  const [hrPhone, setHrPhone] = useState("");
-  const [hrError, setHrError] = useState<string>("");
-
-  const hrNameRef = useRef<HTMLInputElement | null>(null);
-  const hrEmailRef = useRef<HTMLInputElement | null>(null);
-  const hrPhoneRef = useRef<HTMLInputElement | null>(null);
-
-  const isValidEmail = (v: string) => /^\S+@\S+\.\S+$/.test(v.trim());
-  const isValidPhone = (v: string) => v.replace(/\D/g, "").length >= 10;
-
-  const addHR = useCallback(() => {
-    setHrError("");
-
-    if (!effectiveSubscriptionActive) {
-      setHrError("Your subscription is not active. Please renew or upgrade plan.");
-      return;
-    }
-    if (limitReached) {
-      setHrError(`HR limit reached! Your plan allows only ${finalHrLimit} HR accounts. Please upgrade plan.`);
-      return;
-    }
-
-    const n = hrName.trim();
-    const e = hrEmail.trim().toLowerCase();
-    const p = hrPhone.trim();
-
-    if (!n) return (setHrError("HR Name is required."), hrNameRef.current?.focus());
-    if (!e || !isValidEmail(e)) return (setHrError("Please enter a valid HR email."), hrEmailRef.current?.focus());
-    if (!p || !isValidPhone(p)) return (setHrError("Please enter a valid phone number."), hrPhoneRef.current?.focus());
-
-    const exists = hrUsers.some((x) => x.email.toLowerCase() === e);
-    if (exists) return (setHrError("This HR email already exists."), hrEmailRef.current?.focus());
-
-    (async () => {
-      try {
-        const payload = {
-          id: `HR-${Date.now()}`,
-          companyCode: String(company.companyCode || ""),
-          name: n,
-          role: "HR",
-          department: "Human Resources",
-          email: e,
-          phone: p,
-          contact: e,
-          status: "ACTIVE",
-        };
-        await companyApi.upsertCompanyHrAccount(company.id, payload);
-        await refreshCompanyBundle();
-        toast.success("HR account added. Open its details to set up a login and assign employees.");
-        setHrName("");
-        setHrEmail("");
-        setHrPhone("");
-        setTimeout(() => hrNameRef.current?.focus(), 50);
-      } catch (error: any) {
-        console.error("Failed to add HR account", error);
-        setHrError(error?.response?.data?.message || "Failed to save HR account. Please try again.");
-        toast.error("Failed to save HR account");
-      }
-    })();
-  }, [effectiveSubscriptionActive, limitReached, finalHrLimit, hrName, hrEmail, hrPhone, hrUsers, company.id, company.companyCode, refreshCompanyBundle]);
-
-
-  const handleHRKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLInputElement>, field: "name" | "email" | "phone") => {
-      if (e.key !== "Enter") return;
-      if (field === "name") hrEmailRef.current?.focus();
-      if (field === "email") hrPhoneRef.current?.focus();
-      if (field === "phone") addHR();
-    },
-    [addHR]
-  );
-
   const openDashboard = useCallback(() => {
     navigate("/company/dashboard");
     setPage("dashboard");
-  }, [navigate]);
-
-  const openHrManagement = useCallback(() => {
-    navigate("/company/hr");
-    setPage("hr");
   }, [navigate]);
 
   /** Totals + charts (mock analytics) */
@@ -841,11 +695,11 @@ export default function CompanyDashboardOneCompany() {
               </div>
 
               <button
-                onClick={openHrManagement}
+                onClick={() => navigate("/company/service")}
                 className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
               >
                 <FaShieldAlt />
-                Open HR Page
+                Manage Employees
                 <FaChevronRight />
               </button>
             </div>
@@ -909,15 +763,14 @@ export default function CompanyDashboardOneCompany() {
                   <InfoRow icon={<FaShieldAlt />} label="Subscription Status" value={subscriptionMeta?.status || (effectiveSubscriptionActive ? "ACTIVE" : "EXPIRED")} />
                   <InfoRow icon={<FaCalendar />} label="Start Date" value={formatDisplayDate(subscriptionMeta?.startsAt || company.planFrom)} />
                   <InfoRow icon={<FaCalendar />} label="End Date" value={formatDisplayDate(subscriptionMeta?.expiresAt || company.planTo)} />
-                  <InfoRow icon={<FaUserTie />} label="HR Seats Used" value={`${hrUsers.length} / ${finalHrLimit}`} />
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
-                    onClick={openHrManagement}
+                    onClick={() => navigate("/company/service")}
                     className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
                   >
-                    Manage HR
+                    Manage Employees
                     <FaChevronRight />
                   </button>
 
@@ -951,7 +804,7 @@ export default function CompanyDashboardOneCompany() {
           delta={{ dir: "up", value: "Auto" }}
           deltaLabel="Calculated from analytics"
         />
-        <StatCard title="HR Accounts" value={`${hrUsers.length}/${finalHrLimit}`} icon={<FaUserTie className="text-xl" />} onClick={openHrManagement} />
+        <StatCard title="Manage Employees" value={employeesData.length.toString()} icon={<FaUsers className="text-xl" />} onClick={() => navigate("/company/service")} />
       </div>
 
       {/* GRAPHS */}
@@ -1042,7 +895,7 @@ export default function CompanyDashboardOneCompany() {
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white">
-                            <FaUserTie />
+                            <FaUsers />
                           </div>
                           <div>
                             <div className="font-semibold">{emp.name}</div>
@@ -1102,7 +955,7 @@ export default function CompanyDashboardOneCompany() {
     </div>
   );
 
-    /** HR PAGE */
+    /* Legacy account-management UI retained temporarily to avoid a large unrelated dashboard rewrite.
   const HRPage = () => {
     return (
       <div className="space-y-6">
@@ -1289,25 +1142,10 @@ export default function CompanyDashboardOneCompany() {
     );
   };
 
-  const detailHr = hrUsers.find((h) => h.id === detailHrId) || null;
+  */
 
   return (
-    <>
-      {page === "dashboard" ? DashboardPage() : page === "hr" ? HRPage() : EmployeePage()}
-      {detailHr && (
-        <HrDetailPanel
-          companyId={company.id}
-          companyCode={String(company.companyCode || "")}
-          hr={detailHr}
-          onClose={() => setDetailHrId(null)}
-          onUpdated={refreshCompanyBundle}
-          onDeleted={() => {
-            setDetailHrId(null);
-            refreshCompanyBundle();
-          }}
-        />
-      )}
-    </>
+    page === "dashboard" ? DashboardPage() : EmployeePage()
   );
 }
 

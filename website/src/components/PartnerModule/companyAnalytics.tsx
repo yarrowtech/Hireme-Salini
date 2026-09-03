@@ -127,14 +127,6 @@ function planSeatLimit(planKey?: string | null) {
   return 999;
 }
 
-function isHrRecord(emp: BackendEmployee) {
-  return (
-    String((emp as any)?.type || "").toUpperCase() === "HR" ||
-    String(emp.role || "").toUpperCase() === "HR" ||
-    String(emp.department || "").toUpperCase() === "HUMAN RESOURCES"
-  );
-}
-
 function isActiveEmployee(emp: BackendEmployee) {
   return String(emp.status || "ACTIVE").toUpperCase() === "ACTIVE";
 }
@@ -251,7 +243,6 @@ export default function companyAnalyticsDashboard() {
   const totalEmployees = employeeList.length || Number(analyticsData?.employees || 0);
   const activeEmployees = employeeList.filter(isActiveEmployee).length || Number(analyticsData?.employees || 0);
   const inactiveEmployees = Math.max(0, totalEmployees - activeEmployees);
-  const hrEmployees = employeeList.filter(isHrRecord);
   const departmentsRaw = Array.isArray(analyticsData?.departments) ? analyticsData.departments : [];
   const rolesRaw = Array.isArray(analyticsData?.roles) ? analyticsData.roles : [];
 
@@ -327,7 +318,7 @@ export default function companyAnalyticsDashboard() {
       analyticsData?.company?.planKey ||
       analyticsData?.company?.planPrice
   );
-  const seatsUsed = Math.max(totalEmployees, hrEmployees.length);
+  const seatsUsed = totalEmployees;
   const latestUtil = seatLimit === 999 ? 100 : Math.min(100, Math.round((seatsUsed / Math.max(seatLimit, 1)) * 100));
   const empTrend: EmpTrendPoint[] = useMemo(() => {
     const startedAt =
@@ -412,10 +403,10 @@ export default function companyAnalyticsDashboard() {
             </div>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-            <div className="text-slate-300 text-sm">HR Seats Used</div>
+            <div className="text-slate-300 text-sm">Employees Managed</div>
             <div className="mt-2 text-xl font-bold text-white inline-flex items-center gap-2">
-              <FaUserTie />
-              {hrEmployees.length}
+              <FaUsers />
+              {totalEmployees}
             </div>
           </div>
           <div className="rounded-3xl border border-white/10 bg-white/5 p-5 backdrop-blur">

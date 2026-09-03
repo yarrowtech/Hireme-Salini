@@ -192,7 +192,7 @@ export default function Footer() {
             <div className="w-full max-w-6xl mb-12">
                 <div className="bg-gradient-to-r from-blue-800/50 to-blue-600/50 backdrop-blur-sm rounded-2xl p-8 border border-blue-400/20 text-center">
                     <h3 className="text-2xl font-bold text-white mb-3">Stay Updated</h3>
-                    <p className="text-blue-200 mb-6">Subscribe to our newsletter for the latest HR technology insights and platform updates</p>
+                    <p className="text-blue-200 mb-6">Subscribe to our newsletter for the latest workforce technology insights and platform updates</p>
                     <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
                         <input
                             type="email"

@@ -34,7 +34,6 @@ type Plan = {
   features: string[];
   limits: {
     employees: string;
-    hrlogin: string;
     reports: string;
     support: string;
   };
@@ -53,8 +52,8 @@ const PLANS: Plan[] = [
     subtitle: "Small teams & startups",
     tagline: "Best for individual companys & small startups",
     icon: <FaLeaf />,
-    features: ["Up to 25 employees", "1 HR login", "Basic reports", "Email support"],
-    limits: { employees: "25", hrlogin: "1", reports: "Basic", support: "Email" },
+    features: ["Up to 25 employees", "Company-managed employee data", "Basic reports", "Email support"],
+    limits: { employees: "25", reports: "Basic", support: "Email" },
     pricing: { type: "FIXED", monthly: 999, yearly: 9990 },
   },
   {
@@ -64,8 +63,8 @@ const PLANS: Plan[] = [
     tagline: "For growing companies with steady hiring needs",
     icon: <FaBolt />,
     highlight: true,
-    features: ["Up to 100 employees", "3 HR login", "Advanced reports", "Priority support"],
-    limits: { employees: "100", hrlogin: "3", reports: "Advanced", support: "Priority" },
+    features: ["Up to 100 employees", "Company-managed employee data", "Advanced reports", "Priority support"],
+    limits: { employees: "100", reports: "Advanced", support: "Priority" },
     pricing: { type: "FIXED", monthly: 9999, yearly: 99990 },
   },
   {
@@ -74,8 +73,8 @@ const PLANS: Plan[] = [
     subtitle: "Large organizations",
     tagline: "Custom setup, scale & dedicated support",
     icon: <FaCrown />,
-    features: ["Unlimited employees", "Custom HR roles", "Admin dashboard", "API access", "Dedicated manager"],
-    limits: { employees: "Unlimited", hrlogin: "Custom", reports: "Pro", support: "Dedicated" },
+    features: ["Unlimited employees", "Company-managed employee data", "Admin dashboard", "API access", "Dedicated manager"],
+    limits: { employees: "Unlimited", reports: "Pro", support: "Dedicated" },
     pricing: { type: "CUSTOM" },
   },
 ];
@@ -586,7 +585,7 @@ export default function companySubscription() {
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     <InfoPill label="Employees" value={p.limits.employees} />
-                    <InfoPill label="HR Login" value={p.limits.hrlogin} />
+                    <InfoPill label="Employee Management" value="Company" />
                     <InfoPill label="Reports" value={p.limits.reports} />
                     <InfoPill label="Support" value={p.limits.support} />
                   </div>

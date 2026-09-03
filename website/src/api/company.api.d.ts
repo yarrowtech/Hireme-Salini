@@ -10,10 +10,6 @@ declare const companyApi: {
   getCompanyEmployees(companyId?: any): Promise<any>;
   upsertCompanyEmployee(companyId: any, payload: any): Promise<any>;
   deleteCompanyEmployee(companyId: any, employeeId: any): Promise<any>;
-  getCompanyHrAccounts(companyId?: any): Promise<any>;
-  upsertCompanyHrAccount(companyId: any, payload: any): Promise<any>;
-  deleteCompanyHrAccount(companyId: any, hrId: any): Promise<any>;
-  getHrManagedEmployees(companyId: any, hrId: any): Promise<any>;
   getCompanySubscription(companyId?: any): Promise<any>;
   upsertCompanySubscription(companyId: any, payload: any): Promise<any>;
   getCompanyPayroll(companyId?: any): Promise<any>;
