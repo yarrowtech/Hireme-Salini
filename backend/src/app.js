@@ -20,7 +20,12 @@ const app = express();
 app.use(helmet());
 app.use(
   cors({
-    origin: env.CORS_ORIGIN,
+    origin(origin, callback) {
+      const allowed = new Set([env.CORS_ORIGIN]);
+      const isLocalVite = /^http:\/\/(localhost|127\.0\.0\.1):517\d$/.test(String(origin || ""));
+      if (!origin || allowed.has(origin) || isLocalVite) return callback(null, true);
+      return callback(new Error(`CORS blocked origin: ${origin}`));
+    },
     credentials: true
   })
 );
