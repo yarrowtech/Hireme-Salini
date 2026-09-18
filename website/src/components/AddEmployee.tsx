@@ -308,9 +308,9 @@ export default function AddEmployee() {
                                         disabled={!isAccessible}
                                         className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-200 ${
                                             isCompleted
-                                                ? "bg-green-600 text-white shadow-lg"
+                                                ? "bg-green-600 text-slate-900 shadow-lg"
                                                 : isCurrent
-                                                ? "bg-blue-600 text-white shadow-lg"
+                                                ? "bg-blue-600 text-slate-900 shadow-lg"
                                                 : isAccessible
                                                 ? "bg-blue-100 text-blue-600 hover:bg-blue-200 cursor-pointer"
                                                 : "bg-gray-200 text-gray-400 cursor-not-allowed"
@@ -379,7 +379,7 @@ export default function AddEmployee() {
                             type="button"
                             onClick={handleSubmit}
                             disabled={isSubmitting || !isCurrentStepValid()}
-                            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                            className="px-8 py-3 bg-green-600 hover:bg-green-700 text-slate-900 font-semibold rounded-lg shadow-md transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {isSubmitting ? (
                                 <>
@@ -400,7 +400,7 @@ export default function AddEmployee() {
                             disabled={!isCurrentStepValid()}
                             className={`px-6 py-3 font-semibold rounded-lg shadow-md transition-all duration-200 flex items-center gap-2 ${
                                 isCurrentStepValid()
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                    ? "bg-blue-600 hover:bg-blue-700 text-slate-900"
                                     : "bg-gray-300 text-gray-500 cursor-not-allowed"
                             }`}
                         >
@@ -550,7 +550,7 @@ function PersonalDetails({
                     <button
                         type="button"
                         onClick={() => employeePicUploader.current?.click()}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-slate-900 font-medium rounded-lg transition-colors"
                     >
                         <FaUpload />
                         Upload Photo
@@ -730,7 +730,7 @@ function DocumentSection({
                 <button
                     type="button"
                     onClick={() => fileRef.current?.click()}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-slate-900 font-medium rounded-lg transition-colors"
                 >
                     <FaUpload />
                     Upload {title}
@@ -854,7 +854,7 @@ function Education({ educationDetails, setEducationDetails }: {
                     <button
                         type="button"
                         onClick={() => marksheetRef.current?.click()}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-slate-900 font-medium rounded-lg transition-colors"
                     >
                         <FaUpload />
                         Upload Marksheet

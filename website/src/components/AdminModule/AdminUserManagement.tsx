@@ -526,11 +526,11 @@ setSelected((prev) =>
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <h2 className="text-xl font-extrabold text-white">Partner Requests</h2>
-            <p className="text-sm text-slate-400 mt-1">Manage company registration requests</p>
+            <h2 className="text-xl font-extrabold text-slate-900">Partner Requests</h2>
+            <p className="text-sm text-slate-500 mt-1">Manage company registration requests</p>
           </div>
 
           <div className="flex flex-wrap gap-3">
@@ -557,7 +557,7 @@ setSelected((prev) =>
 
           <button
             onClick={() => fetchByTab(tab)}
-            className="ml-auto px-4 py-2 rounded-2xl text-sm font-extrabold transition border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+            className="ml-auto px-4 py-2 rounded-2xl text-sm font-extrabold transition border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
           >
             {loading ? (
               <span className="inline-flex items-center gap-2">
@@ -572,11 +572,11 @@ setSelected((prev) =>
 
       {/* TABLE */}
       {tab !== "history" && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
           <div className="max-h-[62vh] overflow-y-auto thin-scrollbar">
-            <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/30">
+            <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
               <table className="min-w-full text-sm">
-                <thead className="bg-white/5 text-slate-300">
+                <thead className="bg-slate-50 text-slate-600">
                   <tr>
                     <th className="px-6 py-4 text-left font-semibold">Company</th>
                     <th className="px-6 py-4 text-left font-semibold">Company Code</th>
@@ -590,7 +590,7 @@ setSelected((prev) =>
                 <tbody className="divide-y divide-white/10">
                   {loading ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-10 text-center text-slate-400">
+                      <td colSpan={6} className="px-6 py-10 text-center text-slate-500">
                         <span className="inline-flex items-center gap-2">
                           <FaSpinner className="animate-spin" /> Loading...
                         </span>
@@ -598,7 +598,7 @@ setSelected((prev) =>
                     </tr>
                   ) : partners.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                      <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
                         No {tab} requests found.
                       </td>
                     </tr>
@@ -609,16 +609,16 @@ setSelected((prev) =>
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.22 }}
-                        className="hover:bg-white/5"
+                        className="hover:bg-slate-50"
                       >
                         <td className="px-6 py-4">
-                          <div className="font-semibold text-white">{p.companyName}</div>
+                          <div className="font-semibold text-slate-900">{p.companyName}</div>
                           <div className="text-xs text-slate-500">Requested: {p.createdAt}</div>
                         </td>
 
                         <td className="px-6 py-4">
                           {p.companyCode ? (
-                            <span className="inline-flex items-center rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-3 py-1 text-xs font-extrabold text-cyan-200">
+                            <span className="inline-flex items-center rounded-xl border border-sky-200 bg-sky-50 px-3 py-1 text-xs font-extrabold text-sky-700">
                               {p.companyCode}
                             </span>
                           ) : (
@@ -629,7 +629,7 @@ setSelected((prev) =>
                         <td className="px-6 py-4">
                           {p.subscription ? (
                             <div className="inline-flex items-center gap-2">
-                              <span className="text-cyan-200 font-extrabold">₹{p.subscription.amount}</span>
+                              <span className="text-sky-700 font-extrabold">₹{p.subscription.amount}</span>
                               <span className={planPill(p.subscription.status)}>
                                 {p.subscription.planName}
                                 {p.subscription.planKey ? ` • ${p.subscription.planKey}` : ""} •{" "}
@@ -641,7 +641,7 @@ setSelected((prev) =>
                           )}
                         </td>
 
-                        <td className="px-6 py-4 text-slate-300">
+                        <td className="px-6 py-4 text-slate-600">
                           <div className="text-xs">{p.contactNumber}</div>
                           <div className="text-xs text-slate-500">{p.email}</div>
                         </td>
@@ -654,7 +654,7 @@ setSelected((prev) =>
                           <div className="flex flex-wrap items-center gap-2">
                             <button
                               onClick={() => openDetails(p)}
-                              className="px-3 py-1.5 rounded-lg text-xs font-extrabold border border-white/10 bg-white/10 text-white hover:bg-white/15 transition"
+                              className="px-3 py-1.5 rounded-lg text-xs font-extrabold border border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100 transition"
                             >
                               View
                             </button>
@@ -667,8 +667,8 @@ setSelected((prev) =>
                                   className={cn(
                                     "px-3 py-1.5 rounded-lg text-xs font-extrabold border transition inline-flex items-center gap-2",
                                     actionLoadingId === p.id
-                                      ? "border-white/10 bg-white/5 text-slate-400 cursor-not-allowed"
-                                      : "border-emerald-400/30 bg-emerald-500/15 text-emerald-200 hover:bg-emerald-500/25"
+                                      ? "border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
+                                      : "border-emerald-400/30 bg-emerald-500/15 text-emerald-700 hover:bg-emerald-500/25"
                                   )}
                                 >
                                   {actionLoadingId === p.id ? (
@@ -691,8 +691,8 @@ setSelected((prev) =>
                                   className={cn(
                                     "px-3 py-1.5 rounded-lg text-xs font-extrabold border transition inline-flex items-center gap-2",
                                     actionLoadingId === p.id
-                                      ? "border-white/10 bg-white/5 text-slate-400 cursor-not-allowed"
-                                      : "border-rose-400/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25"
+                                      ? "border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
+                                      : "border-rose-400/30 bg-rose-500/15 text-rose-700 hover:bg-rose-500/25"
                                   )}
                                 >
                                   <FaBan /> Reject
@@ -709,8 +709,8 @@ setSelected((prev) =>
                                 className={cn(
                                   "ml-2 w-10 h-9 grid place-items-center rounded-xl border transition",
                                   actionLoadingId === p.id
-                                    ? "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
-                                    : "border-rose-400/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25"
+                                    ? "border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
+                                    : "border-rose-400/30 bg-rose-500/15 text-rose-700 hover:bg-rose-500/25"
                                 )}
                                 title="Delete company"
                               >
@@ -732,20 +732,20 @@ setSelected((prev) =>
 
       {/* HISTORY */}
       {tab === "history" && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
           <div className="flex items-end justify-between gap-4">
             <div>
-              <h3 className="text-sm font-extrabold text-white">Approval Activity Log</h3>
+              <h3 className="text-sm font-extrabold text-slate-900">Approval Activity Log</h3>
             </div>
 
-            <div className="rounded-full border border-white/10 bg-black/30 px-4 py-2 text-xs text-slate-300">
-              Total Logs: <span className="text-white font-bold">{history.length}</span>
+            <div className="rounded-full border border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">
+              Total Logs: <span className="text-slate-900 font-bold">{history.length}</span>
             </div>
           </div>
 
           <div className="mt-5 max-h-[62vh] overflow-y-auto thin-scrollbar pr-1">
             {history.length === 0 ? (
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-slate-400">
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
                 No activity recorded yet.
               </div>
             ) : (
@@ -756,13 +756,13 @@ setSelected((prev) =>
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="flex items-start gap-4 rounded-2xl border border-white/10 bg-black/30 px-4 py-3"
+                    className="flex items-start gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-3"
                   >
                     <div className={cn("mt-2 h-3 w-3 rounded-full", actionDot(h.action))} />
 
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-white font-semibold truncate">{h.name}</span>
+                        <span className="text-slate-900 font-semibold truncate">{h.name}</span>
                         <span className={actionBadge(h.action)}>{h.action}</span>
                       </div>
                       <div className="text-xs text-slate-500 mt-1">{h.time}</div>
@@ -786,27 +786,27 @@ setSelected((prev) =>
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/70" onClick={() => setSelected(null)} />
+            <div className="absolute inset-0 bg-slate-900/45" onClick={() => setSelected(null)} />
 
             <motion.div
-              className="relative w-full max-w-5xl rounded-3xl border border-white/10 bg-slate-950/70 backdrop-blur-xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-5xl rounded-3xl border border-slate-200 bg-slate-500 backdrop-blur-xl shadow-2xl overflow-hidden"
               initial={{ y: 18, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 18, opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="flex items-start justify-between gap-4 p-5 border-b border-white/10 bg-white/5">
+              <div className="flex items-start justify-between gap-4 p-5 border-b border-slate-200 bg-slate-50">
                 <div>
-                  <div className="text-lg font-extrabold text-white">Company Request Details</div>
-                  <div className="text-xs text-slate-400 mt-1">
+                  <div className="text-lg font-extrabold text-slate-900">Company Request Details</div>
+                  <div className="text-xs text-slate-500 mt-1">
                     {selected.companyName} • {selected.email}
                   </div>
                   <div className="mt-2">
-                    <span className="text-[11px] font-extrabold px-3 py-1 rounded-full border border-cyan-400/20 bg-cyan-500/10 text-cyan-200">
+                    <span className="text-[11px] font-extrabold px-3 py-1 rounded-full border border-sky-200 bg-sky-50 text-sky-700">
                       Company Code: {selected.companyCode || "—"}
                     </span>
                     {docLoading && (
-                      <span className="ml-2 text-xs text-slate-400 inline-flex items-center gap-2">
+                      <span className="ml-2 text-xs text-slate-500 inline-flex items-center gap-2">
                         <FaSpinner className="animate-spin" /> Loading details...
                       </span>
                     )}
@@ -815,7 +815,7 @@ setSelected((prev) =>
 
                 <button
                   onClick={() => setSelected(null)}
-                  className="w-10 h-10 grid place-items-center rounded-2xl border border-white/10 bg-black/30 text-white hover:bg-black/40"
+                  className="w-10 h-10 grid place-items-center rounded-2xl border border-slate-200 bg-white text-slate-900 hover:bg-black/40"
                   aria-label="Close"
                 >
                   <FaTimes />
@@ -824,7 +824,7 @@ setSelected((prev) =>
 
               <div className="p-5 space-y-6 max-h-[75vh] overflow-y-auto thin-scrollbar">
                 <SectionTitle icon={<FaCrown />} title="Subscription Plan Details" />
-                <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900/40 via-blue-950/30 to-indigo-950/30 p-5">
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-900/40 via-blue-950/30 to-indigo-950/30 p-5">
                   {selected.subscription ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <Field
@@ -838,14 +838,14 @@ setSelected((prev) =>
                       <Field icon={<FaCalendarAlt />} label="End Date" value={selected.subscription.endDate} />
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-sm text-slate-300">
+                    <div className="rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-600">
                       No plan selected or plan not saved yet.
                     </div>
                   )}
                 </div>
 
                 <SectionTitle icon={<FaBuilding />} title="Company Information" />
-                <div className="rounded-3xl border border-white/10 bg-gradient-to-r from-slate-900/40 via-blue-950/30 to-indigo-950/30 p-5">
+                <div className="rounded-3xl border border-slate-200 bg-gradient-to-r from-slate-900/40 via-blue-950/30 to-indigo-950/30 p-5">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field icon={<FaBuilding />} label="Company Name" value={selected.companyName} />
                     <Field icon={<FaPhoneAlt />} label="Contact Number" value={selected.contactNumber} />
@@ -877,16 +877,16 @@ setSelected((prev) =>
                     return (
                       <div
                         key={d.key}
-                        className="rounded-3xl border border-white/10 p-5 bg-gradient-to-br from-white/5 to-black/20"
+                        className="rounded-3xl border border-slate-200 p-5 bg-gradient-to-br from-white/5 to-black/20"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex items-start gap-3">
-                            <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-400/20 grid place-items-center text-cyan-200">
+                            <div className="w-11 h-11 rounded-2xl bg-sky-100 border border-sky-200 grid place-items-center text-sky-700">
                               <FaFilePdf />
                             </div>
                             <div className="min-w-0">
-                              <div className="text-white font-extrabold">{d.title}</div>
-                              <div className="text-xs text-slate-400 mt-0.5">
+                              <div className="text-slate-900 font-extrabold">{d.title}</div>
+                              <div className="text-xs text-slate-500 mt-0.5">
                                 {d.required ? "Required" : "Optional"} • PDF only
                               </div>
                             </div>
@@ -896,16 +896,16 @@ setSelected((prev) =>
                             className={cn(
                               "text-[11px] font-extrabold px-3 py-1 rounded-full border",
                               uploaded
-                                ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
-                                : "border-rose-400/30 bg-rose-500/15 text-rose-200"
+                                ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
+                                : "border-rose-400/30 bg-rose-500/15 text-rose-700"
                             )}
                           >
                             {uploaded ? "Uploaded" : "Not Uploaded"}
                           </span>
                         </div>
 
-                        <div className="mt-4 rounded-2xl border border-dashed border-white/15 bg-black/25 p-4 flex items-center justify-between gap-3">
-                          <div className="text-xs text-slate-300 truncate">
+                        <div className="mt-4 rounded-2xl border border-dashed border-slate-200 bg-black/25 p-4 flex items-center justify-between gap-3">
+                          <div className="text-xs text-slate-600 truncate">
                             {uploaded ? file!.name : d.placeholder}
                           </div>
 
@@ -916,8 +916,8 @@ setSelected((prev) =>
                               className={cn(
                                 "px-3 py-2 rounded-xl text-xs font-extrabold border transition inline-flex items-center gap-2",
                                 uploaded && !docLoading
-                                  ? "border-white/10 bg-white/10 text-white hover:bg-white/15"
-                                  : "border-white/5 bg-white/5 text-slate-500 cursor-not-allowed"
+                                  ? "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100"
+                                  : "border-white/5 bg-slate-50 text-slate-500 cursor-not-allowed"
                               )}
                               title="View"
                             >
@@ -930,8 +930,8 @@ setSelected((prev) =>
                               className={cn(
                                 "px-3 py-2 rounded-xl text-xs font-extrabold border transition inline-flex items-center",
                                 uploaded && !docLoading
-                                  ? "border-white/10 bg-white/10 text-white hover:bg-white/15"
-                                  : "border-white/5 bg-white/5 text-slate-500 cursor-not-allowed"
+                                  ? "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-100"
+                                  : "border-white/5 bg-slate-50 text-slate-500 cursor-not-allowed"
                               )}
                               title="Download"
                             >
@@ -944,23 +944,23 @@ setSelected((prev) =>
                   })}
                 </div>
 
-                <div className="rounded-3xl border border-white/10 bg-black/30 p-4 flex items-center justify-between gap-3">
+                <div className="rounded-3xl border border-slate-200 bg-white p-4 flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-white/10 border border-white/10 grid place-items-center text-white">
+                    <div className="w-10 h-10 rounded-2xl bg-slate-50 border border-slate-200 grid place-items-center text-slate-900">
                       <FaUserTie />
                     </div>
                     <div>
-                      <div className="text-white font-extrabold">{selected.companyName}</div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-slate-900 font-extrabold">{selected.companyName}</div>
+                      <div className="text-xs text-slate-500">
                         Status:{" "}
-                        <span className="text-cyan-200 font-bold">{String(selected.status).toUpperCase()}</span>
+                        <span className="text-sky-700 font-bold">{String(selected.status).toUpperCase()}</span>
                       </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => setSelected(null)}
-                    className="px-5 py-3 rounded-2xl border border-white/10 bg-white/10 text-white font-extrabold hover:bg-white/15 transition"
+                    className="px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-extrabold hover:bg-slate-100 transition"
                   >
                     Close
                   </button>
@@ -980,42 +980,42 @@ setSelected((prev) =>
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-black/70" onClick={() => setRejecting(null)} />
+            <div className="absolute inset-0 bg-slate-900/45" onClick={() => setRejecting(null)} />
 
             <motion.div
-              className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-slate-950/70 backdrop-blur-xl shadow-2xl overflow-hidden"
+              className="relative w-full max-w-lg rounded-3xl border border-slate-200 bg-slate-500 backdrop-blur-xl shadow-2xl overflow-hidden"
               initial={{ y: 18, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               exit={{ y: 18, opacity: 0 }}
               transition={{ duration: 0.2 }}
             >
-              <div className="p-5 border-b border-white/10 bg-white/5 flex items-start justify-between gap-3">
+              <div className="p-5 border-b border-slate-200 bg-slate-50 flex items-start justify-between gap-3">
                 <div>
-                  <div className="text-lg font-extrabold text-white">Reject Request</div>
-                  <div className="text-xs text-slate-400 mt-1">{rejecting.companyName}</div>
+                  <div className="text-lg font-extrabold text-slate-900">Reject Request</div>
+                  <div className="text-xs text-slate-500 mt-1">{rejecting.companyName}</div>
                 </div>
                 <button
                   onClick={() => setRejecting(null)}
-                  className="w-10 h-10 grid place-items-center rounded-2xl border border-white/10 bg-black/30 text-white hover:bg-black/40"
+                  className="w-10 h-10 grid place-items-center rounded-2xl border border-slate-200 bg-white text-slate-900 hover:bg-black/40"
                 >
                   <FaTimes />
                 </button>
               </div>
 
               <div className="p-5 space-y-4">
-                <label className="text-sm font-extrabold text-slate-200">Reason</label>
+                <label className="text-sm font-extrabold text-slate-700">Reason</label>
                 <textarea
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                   rows={4}
-                  className="w-full p-4 bg-white/10 border border-white/15 rounded-2xl outline-none focus:ring-2 focus:ring-cyan-400 text-white placeholder-slate-400"
+                  className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-sky-300 text-slate-900 placeholder-slate-400"
                   placeholder="Write reason for rejection..."
                 />
 
                 <div className="flex items-center justify-end gap-2">
                   <button
                     onClick={() => setRejecting(null)}
-                    className="px-5 py-3 rounded-2xl border border-white/10 bg-white/10 text-white font-extrabold hover:bg-white/15 transition"
+                    className="px-5 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-slate-900 font-extrabold hover:bg-slate-100 transition"
                   >
                     Cancel
                   </button>
@@ -1026,8 +1026,8 @@ setSelected((prev) =>
                     className={cn(
                       "px-5 py-3 rounded-2xl border font-extrabold transition inline-flex items-center gap-2",
                       actionLoadingId === rejecting.id
-                        ? "border-white/10 bg-white/5 text-slate-400 cursor-not-allowed"
-                        : "border-rose-400/30 bg-rose-500/15 text-rose-200 hover:bg-rose-500/25"
+                        ? "border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
+                        : "border-rose-400/30 bg-rose-500/15 text-rose-700 hover:bg-rose-500/25"
                     )}
                   >
                     {actionLoadingId === rejecting.id ? (
@@ -1054,9 +1054,9 @@ setSelected((prev) =>
 
 function Stat({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3">
-      <div className="text-xs text-slate-400">{label}</div>
-      <div className="text-lg font-extrabold text-white">{value}</div>
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3">
+      <div className="text-xs text-slate-500">{label}</div>
+      <div className="text-lg font-extrabold text-slate-900">{value}</div>
     </div>
   );
 }
@@ -1076,8 +1076,8 @@ function TabButton({
       className={cn(
         "px-4 py-2 rounded-2xl text-sm font-extrabold transition border",
         active
-          ? "border-cyan-400/30 bg-gradient-to-r from-cyan-500/25 via-blue-500/15 to-indigo-500/20 text-white shadow-lg"
-          : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+          ? "border-sky-300 bg-gradient-to-r from-cyan-500/25 via-blue-500/15 to-indigo-500/20 text-slate-900 shadow-lg"
+          : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
       )}
     >
       {children}
@@ -1087,8 +1087,8 @@ function TabButton({
 
 function actionBadge(action: HistoryItem["action"]) {
   if (action === "Approved")
-    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-emerald-400/30 bg-gradient-to-r from-emerald-500/25 to-cyan-500/15 text-emerald-200";
-  return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-rose-400/30 bg-gradient-to-r from-rose-500/25 to-fuchsia-500/15 text-rose-200";
+    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-emerald-400/30 bg-gradient-to-r from-emerald-500/25 to-cyan-500/15 text-emerald-700";
+  return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-rose-400/30 bg-gradient-to-r from-rose-500/25 to-fuchsia-500/15 text-rose-700";
 }
 
 function actionDot(action: HistoryItem["action"]) {
@@ -1099,32 +1099,32 @@ function actionDot(action: HistoryItem["action"]) {
 function planPill(status: string) {
   const s = String(status || "").toLowerCase();
   if (s === "active")
-    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 text-emerald-200";
+    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-emerald-400/30 bg-emerald-500/15 text-emerald-700";
   if (s === "pending")
-    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-amber-400/30 bg-amber-500/15 text-amber-200";
+    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-amber-400/30 bg-amber-500/15 text-amber-700";
   if (s === "cancelled")
-    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-rose-400/30 bg-rose-500/15 text-rose-200";
-  return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-slate-400/20 bg-white/5 text-slate-200";
+    return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-rose-400/30 bg-rose-500/15 text-rose-700";
+  return "text-[11px] font-extrabold px-3 py-1 rounded-full border border-slate-400/20 bg-slate-50 text-slate-700";
 }
 
 function statusPill(status: string) {
   const s = String(status || "").toUpperCase();
   if (s === "PENDING")
-    return "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-200 border border-amber-400/20";
+    return "px-3 py-1 rounded-full text-xs font-semibold bg-amber-500/15 text-amber-700 border border-amber-400/20";
   if (s === "APPROVED")
-    return "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-200 border border-emerald-400/20";
+    return "px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/15 text-emerald-700 border border-emerald-400/20";
   if (s === "REJECTED")
-    return "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-200 border border-rose-400/20";
-  return "px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-white border border-white/10";
+    return "px-3 py-1 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-700 border border-rose-400/20";
+  return "px-3 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-900 border border-slate-200";
 }
 
 function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="w-10 h-10 rounded-2xl bg-cyan-500/15 border border-cyan-400/20 grid place-items-center text-cyan-200">
+      <div className="w-10 h-10 rounded-2xl bg-sky-100 border border-sky-200 grid place-items-center text-sky-700">
         {icon}
       </div>
-      <div className="text-lg font-extrabold text-white">{title}</div>
+      <div className="text-lg font-extrabold text-slate-900">{title}</div>
     </div>
   );
 }
@@ -1144,17 +1144,17 @@ function Field({
 }) {
   return (
     <div className={cn(full ? "w-full" : "")}>
-      <div className="flex items-center gap-2 text-sm font-bold text-slate-200 mb-2">
-        <span className="text-cyan-200">{icon}</span>
+      <div className="flex items-center gap-2 text-sm font-bold text-slate-700 mb-2">
+        <span className="text-sky-700">{icon}</span>
         <span>{label}</span>
       </div>
 
       {textarea ? (
-        <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-4 text-slate-200 min-h-[110px]">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4 text-slate-700 min-h-[110px]">
           {value}
         </div>
       ) : (
-        <div className="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-slate-200">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-700">
           {value}
         </div>
       )}

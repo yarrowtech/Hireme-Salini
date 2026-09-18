@@ -30,7 +30,7 @@ export default function AdminProtectedRoute() {
 
   if (status === "loading") {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+      <div className="min-h-screen flex items-center justify-center bg-white text-slate-900">
         <div className="flex items-center gap-3">
           <span className="h-5 w-5 rounded-full border-b-2 border-white animate-spin" />
           Checking admin session...

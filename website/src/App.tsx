@@ -21,6 +21,7 @@ import CompanyDashboard from "./components/PartnerModule/companyDashboard";
 import CompanyAnalytics from "./components/PartnerModule/companyAnalytics";
 import CompanySalaryPayment from "./components/PartnerModule/companySalaryPayment";
 import CompanyServiceAccess from "./components/PartnerModule/companyServiceAccess";
+import CompanyEmployeeDetails from "./components/PartnerModule/companyEmployeeDetails";
 import CompanySubscription from "./components/PartnerModule/companySubscription";
 
 import Admin from "./components/AdminModule/Admin";
@@ -69,6 +70,7 @@ function App() {
     <Route path="analytics" element={<CompanyAnalytics />} />
     <Route path="salary" element={<CompanySalaryPayment />} />
     <Route path="service" element={<CompanyServiceAccess />} />
+    <Route path="service/:employeeId" element={<CompanyEmployeeDetails />} />
     <Route path="subscription" element={<CompanySubscription />} />
   </Route>
 

@@ -1,478 +1,442 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import {
+  FaBuilding,
+  FaCalendarCheck,
+  FaCheck,
+  FaHourglassHalf,
+  FaIdBadge,
+  FaMapMarkerAlt,
+  FaPlay,
+  FaStop,
+  FaSyncAlt,
+} from "react-icons/fa";
+import { toast } from "react-toastify";
+import employeeApi from "../../api/employee.api";
+import { cn, currentMonthKey, fallbackDashboard, formatDisplayTime, formatINR, formatIST24Time, formatISTTime, getISTMinutes } from "./employeeUi";
 
-/* ================= TYPES ================= */
-type EmployeeData = {
-  employeeId: string;
-  companyId: string;
-  name: string;
-  role: string;
-  department: string;
-  email: string;
-  phone: string;
-  salary: number;
+type DashboardData = any;
+
+const parseHHMM = (value?: string) => {
+  if (!value) return null;
+  const match = String(value).match(/(\d{1,2}):(\d{2})/);
+  if (!match) return null;
+  const h = Number(match[1]);
+  const m = Number(match[2]);
+  if (Number.isNaN(h) || Number.isNaN(m)) return null;
+  return h * 60 + m;
 };
 
-type PaymentRow = {
-  month: string;
-  year: number;
-  basic: number;
-  allowances: number;
-  deductions: number;
+const greeting = (d: Date) => {
+  const h = Math.floor(getISTMinutes(d) / 60);
+  if (h < 12) return "Good morning";
+  if (h < 17) return "Good afternoon";
+  return "Good evening";
 };
 
-type AttendanceRow = {
-  month: string;
-  year: number;
-  present: number;
-  absent: number;
-  leaves: number;
-};
-
-type PerformanceRow = {
-  month: string;
-  year: number;
-  productivity: number; // 0-100
-  punctuality: number; // 0-100
-  taskCompletion: number; // 0-100
-  rating: number; // 1-5
-};
-
-/* ================= CONSTANTS ================= */
-const LOGIN_KEY = "EmployeeLoginId";
-const FIXED_YEAR = 2026;
-
-const MONTH_INDEX: Record<string, number> = {
-  Jan: 0,
-  Feb: 1,
-  Mar: 2,
-  Apr: 3,
-  May: 4,
-  Jun: 5,
-  Jul: 6,
-  Aug: 7,
-  Sep: 8,
-  Oct: 9,
-  Nov: 10,
-  Dec: 11,
-};
-
-const MONTH_ORDER = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-/* ================= UTILS ================= */
-const cn = (...x: Array<string | false | null | undefined>) => x.filter(Boolean).join(" ");
-const formatINR = (n: number) => `₹${Number(n || 0).toLocaleString("en-IN")}`;
-const generateEmployeeName = (id = "") =>
-  id ? id.replace(/\./g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) : "Employee";
-
-/* ================= 2026 CALENDAR (UTC SAFE) ================= */
-function daysInMonth2026(month: string) {
-  const m = MONTH_INDEX[month] ?? 0;
-  return new Date(Date.UTC(FIXED_YEAR, m + 1, 0)).getUTCDate();
-}
-function countSundays2026(month: string) {
-  const m = MONTH_INDEX[month] ?? 0;
-  const totalDays = daysInMonth2026(month);
-  let sundays = 0;
-  for (let day = 1; day <= totalDays; day++) {
-    const d = new Date(Date.UTC(FIXED_YEAR, m, day));
-    if (d.getUTCDay() === 0) sundays++;
-  }
-  return sundays;
-}
-function workingDays2026(month: string) {
-  return daysInMonth2026(month) - countSundays2026(month);
-}
-function keyOf(month: string, year: number) {
-  return `${month}-${year}`;
-}
-
-/* ================= MOCK DATA (replace with API) ================= */
-const employeeMock: EmployeeData = {
-  employeeId: "EMP-001",
-  companyId: "COMP-001",
-  name: "Rahul Sharma",
-  role: "Developer",
-  department: "IT",
-  email: "rahul@example.com",
-  phone: "+91 9876543210",
-  salary: 18000,
-};
-
-const payments: PaymentRow[] = [
-  { month: "Jan", year: 2026, basic: 18000, allowances: 2000, deductions: 500 },
-  { month: "Feb", year: 2026, basic: 18000, allowances: 2200, deductions: 500 },
-  { month: "Mar", year: 2026, basic: 18000, allowances: 2500, deductions: 500 },
-];
-
-const attendance: AttendanceRow[] = [
-  { month: "Jan", year: 2026, present: 22, absent: 2, leaves: 1 },
-  { month: "Feb", year: 2026, present: 20, absent: 3, leaves: 2 },
-  { month: "Mar", year: 2026, present: 23, absent: 1, leaves: 1 },
-];
-
-// ✅ Performance demo (replace with API)
-const performance: PerformanceRow[] = [
-  { month: "Jan", year: 2026, productivity: 78, punctuality: 86, taskCompletion: 74, rating: 4.0 },
-  { month: "Feb", year: 2026, productivity: 82, punctuality: 84, taskCompletion: 79, rating: 4.1 },
-  { month: "Mar", year: 2026, productivity: 88, punctuality: 90, taskCompletion: 86, rating: 4.6 },
-];
-
-function monthYearOptionsFromData(p: PaymentRow[], a: AttendanceRow[], perf: PerformanceRow[]) {
-  const map = new Map<string, { month: string; year: number }>();
-  for (const x of p) map.set(keyOf(x.month, x.year), { month: x.month, year: x.year });
-  for (const x of a) map.set(keyOf(x.month, x.year), { month: x.month, year: x.year });
-  for (const x of perf) map.set(keyOf(x.month, x.year), { month: x.month, year: x.year });
-
-  return Array.from(map.values()).sort((u, v) => {
-    if (u.year !== v.year) return u.year - v.year;
-    return MONTH_ORDER.indexOf(u.month) - MONTH_ORDER.indexOf(v.month);
-  });
-}
-
-/* ================= COMPONENT ================= */
 export default function EmployeeDashboard() {
-  const navigate = useNavigate();
+  const [data, setData] = useState<DashboardData>(fallbackDashboard());
+  const [loading, setLoading] = useState(true);
+  const [punching, setPunching] = useState(false);
+  const [now, setNow] = useState(new Date());
 
-  const [loginId, setLoginId] = useState(() => localStorage.getItem(LOGIN_KEY) || "");
+  const load = async () => {
+    try {
+      setLoading(true);
+      const res = await employeeApi.getDashboard({ month: currentMonthKey() });
+      if (res?.success && res.data) setData({ ...fallbackDashboard(), ...res.data });
+    } catch (err: any) {
+      toast.info(err?.response?.data?.message || "Showing saved employee details.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const sync = () => setLoginId(localStorage.getItem(LOGIN_KEY) || "");
-    window.addEventListener("focus", sync);
-    window.addEventListener("storage", sync);
-    return () => {
-      window.removeEventListener("focus", sync);
-      window.removeEventListener("storage", sync);
-    };
+    load();
   }, []);
 
-  const employee = useMemo<EmployeeData>(() => {
-    if (!loginId) return employeeMock;
-    return { ...employeeMock, employeeId: loginId, name: generateEmployeeName(loginId) };
-  }, [loginId]);
-
-  const paymentNet = useMemo(() => payments.map((p) => ({ ...p, net: p.basic + p.allowances - p.deductions })), []);
-  const monthOptions = useMemo(() => monthYearOptionsFromData(payments, attendance, performance), []);
-  const latest = monthOptions[monthOptions.length - 1] || { month: "Mar", year: 2026 };
-
-  const [selectedKey, setSelectedKey] = useState<string>(() => keyOf(latest.month, latest.year));
-
-  const selectedMonthYear = useMemo(() => {
-    const found = monthOptions.find((o) => keyOf(o.month, o.year) === selectedKey);
-    return found || latest;
-  }, [monthOptions, selectedKey, latest]);
-
-  const selectedPayment = useMemo(
-    () => paymentNet.find((p) => p.month === selectedMonthYear.month && p.year === selectedMonthYear.year),
-    [paymentNet, selectedMonthYear.month, selectedMonthYear.year]
-  );
-
-  const selectedAttendance = useMemo(
-    () => attendance.find((a) => a.month === selectedMonthYear.month && a.year === selectedMonthYear.year),
-    [selectedMonthYear.month, selectedMonthYear.year]
-  );
-
-  const selectedPerf = useMemo(
-    () => performance.find((p) => p.month === selectedMonthYear.month && p.year === selectedMonthYear.year),
-    [selectedMonthYear.month, selectedMonthYear.year]
-  );
-
-  const monthDays = useMemo(() => daysInMonth2026(selectedMonthYear.month), [selectedMonthYear.month]);
-  const monthSundays = useMemo(() => countSundays2026(selectedMonthYear.month), [selectedMonthYear.month]);
-  const monthWorkingDays = useMemo(() => workingDays2026(selectedMonthYear.month), [selectedMonthYear.month]);
-
-  const present = selectedAttendance?.present ?? 0;
-  const absent = selectedAttendance?.absent ?? 0;
-  const leaves = selectedAttendance?.leaves ?? 0;
-
-  const attendancePct = useMemo(() => {
-    if (!monthWorkingDays) return 0;
-    return selectedAttendance ? Math.round((present / monthWorkingDays) * 100) : 0;
-  }, [selectedAttendance, present, monthWorkingDays]);
-
-  const perfScore = useMemo(() => {
-    if (!selectedPerf) return 0;
-    // simple weighted score (you can change)
-    const v =
-      selectedPerf.productivity * 0.45 +
-      selectedPerf.taskCompletion * 0.35 +
-      selectedPerf.punctuality * 0.2;
-    return Math.round(v);
-  }, [selectedPerf]);
-
-  const perfTrend = useMemo(() => {
-    // show last 3 months trend bars
-    const last3 = [...performance]
-      .sort((a, b) => MONTH_ORDER.indexOf(a.month) - MONTH_ORDER.indexOf(b.month))
-      .slice(-3);
-    return last3.map((x) => ({
-      key: `${x.month}`,
-      score: Math.round(x.productivity * 0.45 + x.taskCompletion * 0.35 + x.punctuality * 0.2),
-    }));
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
+
+  const employee = data.employee;
+  const company = data.company;
+  const today = data.todayAttendance;
+  const monthly = data.monthlySummary;
+  const salary = data.salary;
+
+  const checkedIn = Boolean(today?.checkIn);
+  const checkedOut = Boolean(today?.checkOut);
+
+  const punch = async (type: "in" | "out") => {
+    const time = formatIST24Time(now);
+    try {
+      setPunching(true);
+      if (type === "in") {
+        await employeeApi.checkIn({ time });
+        toast.success("Attendance check-in recorded.");
+      } else {
+        await employeeApi.checkOut({ time });
+        toast.success("Attendance check-out recorded.");
+      }
+      await load();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Unable to update attendance.");
+    } finally {
+      setPunching(false);
+    }
+  };
+
+  const pay = useMemo(
+    () => salary.latestPayroll?.netSalary || salary.structure?.netSalary || salary.structure?.grossSalary || 0,
+    [salary]
+  );
 
   return (
     <div className="space-y-6">
-      {/* ================= HEADER ================= */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-2xl bg-white/10 border border-white/10 grid place-items-center text-xl font-extrabold text-white">
+      {/* ================= HERO ================= */}
+      <section className="relative overflow-hidden rounded-3xl border border-blue-200/70 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 p-6 sm:p-8 shadow-xl shadow-blue-900/20">
+        <div className="pointer-events-none absolute -top-16 -right-10 w-64 h-64 rounded-full bg-white/10 blur-3xl" />
+        <div className="pointer-events-none absolute bottom-0 left-1/3 w-56 h-56 rounded-full bg-sky-300/10 blur-3xl" />
+
+        <div className="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+          <div className="flex items-start gap-4">
+            <div className="grid h-16 w-16 shrink-0 place-items-center rounded-2xl bg-white/15 backdrop-blur text-2xl font-black text-white ring-2 ring-white/25">
               {(employee.name || "E").charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <h2 className="text-2xl font-extrabold text-white truncate">Employee Dashboard</h2>
-              <p className="text-sm text-slate-300 truncate">
-                {employee.name} • {employee.role} • {employee.department}
-              </p>
-              <p className="text-xs text-slate-400 truncate">
-                {employee.employeeId} • {employee.companyId}
+              <p className="text-sm font-semibold text-blue-100">{greeting(now)},</p>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">{employee.name || "Employee"}</h1>
+              <p className="mt-1 text-sm font-medium text-blue-100/90">
+                {employee.designation || employee.role} &middot; {employee.department || "General"}
               </p>
             </div>
           </div>
 
-          {/* ✅ removed Open Attendance / Open Profile buttons (as requested) */}
-          
+          <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[420px]">
+            <HeroInfo label="Username" value={employee.employeeId || "Not set"} icon={<FaIdBadge />} />
+            <HeroInfo label="Company Code" value={String(company?.code || "Not set")} icon={<FaBuilding />} />
+            <HeroInfo label="Location" value={employee.workLocation || "Main Office"} icon={<FaMapMarkerAlt />} />
+          </div>
+        </div>
+      </section>
+
+      {/* ================= KPI STRIP ================= */}
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <Metric label="Attendance This Month" value={`${monthly.attendancePct || 0}%`} helper={`${monthly.presentDays || 0} present days`} tone="blue" />
+        <Metric label="Absent Days" value={String(monthly.absentDays || 0)} helper="For selected payroll month" tone="rose" />
+        <Metric label="Approved Leave" value={String(monthly.paidLeave || 0)} helper="Paid leave count" tone="amber" />
+        <Metric label="Net Salary" value={pay ? formatINR(pay) : "Not set"} helper={salary.latestPayroll?.status || "Salary page"} tone="emerald" />
+      </section>
+
+      {/* ================= TIME CLOCK + WORK DETAILS ================= */}
+      <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+        <TimeClockCard
+          now={now}
+          employee={employee}
+          today={today}
+          checkedIn={checkedIn}
+          checkedOut={checkedOut}
+          punching={punching}
+          onPunch={punch}
+          onRefresh={load}
+          loading={loading}
+        />
+
+        <div className="rounded-3xl border border-blue-200/70 bg-white p-5 sm:p-6 shadow-sm">
+          <h2 className="text-lg font-extrabold text-slate-950">Work Details</h2>
+          <div className="mt-4 space-y-3">
+            <Row label="Shift" value={`${employee.shiftStart || "09:00"} - ${employee.shiftEnd || "18:00"}`} />
+            <Row label="Weekly Off" value={employee.weeklyOff || "Sunday"} />
+            <Row label="Location" value={employee.workLocation || "Main Office"} />
+            <Row label="Company" value={company?.name || "Company"} />
+          </div>
+
+          <div className="mt-5 rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+            <div className="flex items-center gap-2 text-xs font-bold uppercase text-blue-700">
+              <FaHourglassHalf /> Today&apos;s Status
+            </div>
+            <div className="mt-2 text-sm font-semibold text-slate-700">
+              {today.status ? today.status.replace(/_/g, " ") : "Not marked"}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ================= RECENT RECORDS ================= */}
+      <section className="rounded-3xl border border-blue-200/70 bg-white p-5 sm:p-6 shadow-sm">
+        <div className="mb-4 flex items-center gap-2">
+          <FaCalendarCheck className="text-blue-700" />
+          <h2 className="text-lg font-extrabold text-slate-950">Recent Attendance Records</h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[620px] text-left text-sm">
+            <thead className="border-b border-slate-200 text-xs uppercase text-slate-500">
+              <tr>
+                <th className="px-3 py-3">Date</th>
+                <th className="px-3 py-3">Check In</th>
+                <th className="px-3 py-3">Check Out</th>
+                <th className="px-3 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {data.recentAttendance.slice(0, 6).map((row: any) => (
+                <tr key={row.date} className="hover:bg-blue-50/50 transition">
+                  <td className="px-3 py-3 font-bold text-slate-900">{row.date}</td>
+                  <td className="px-3 py-3 text-slate-700">{formatDisplayTime(row.checkIn) || "-"}</td>
+                  <td className="px-3 py-3 text-slate-700">{formatDisplayTime(row.checkOut) || "-"}</td>
+                  <td className="px-3 py-3"><Badge status={row.status} /></td>
+                </tr>
+              ))}
+              {data.recentAttendance.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="px-3 py-8 text-center text-slate-500">No attendance records yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+/* ================= Unique Time Clock Widget ================= */
+function TimeClockCard({
+  now,
+  employee,
+  today,
+  checkedIn,
+  checkedOut,
+  punching,
+  onPunch,
+  onRefresh,
+  loading,
+}: {
+  now: Date;
+  employee: any;
+  today: any;
+  checkedIn: boolean;
+  checkedOut: boolean;
+  punching: boolean;
+  onPunch: (t: "in" | "out") => void;
+  onRefresh: () => void;
+  loading: boolean;
+}) {
+  const shiftStartMin = parseHHMM(employee.shiftStart) ?? 9 * 60;
+  const shiftEndMin = parseHHMM(employee.shiftEnd) ?? 18 * 60;
+  const totalShiftMin = Math.max(1, shiftEndMin - shiftStartMin);
+
+  const checkInMin = parseHHMM(today?.checkIn);
+  const checkOutMin = parseHHMM(today?.checkOut);
+  const nowMin = getISTMinutes(now);
+
+  let progressPct = 0;
+  if (checkedOut) {
+    progressPct = 100;
+  } else if (checkedIn && checkInMin !== null) {
+    const elapsed = nowMin - checkInMin;
+    const remainingShift = Math.max(1, shiftEndMin - checkInMin);
+    progressPct = Math.max(0, Math.min(100, (elapsed / remainingShift) * 100));
+  }
+
+  const radius = 64;
+  const circumference = 2 * Math.PI * radius;
+  const dashOffset = circumference - (progressPct / 100) * circumference;
+
+  const ringColorClass = checkedOut
+    ? "stroke-emerald-500"
+    : checkedIn
+      ? "stroke-blue-500"
+      : "stroke-slate-200";
+
+  const statusLabel = checkedOut ? "Shift Complete" : checkedIn ? "Currently Working" : "Not Started";
+
+  const startPct = 0;
+  const checkOutPct = checkOutMin !== null ? Math.max(0, Math.min(100, ((checkOutMin - shiftStartMin) / totalShiftMin) * 100)) : null;
+  const nowPct = Math.max(0, Math.min(100, ((nowMin - shiftStartMin) / totalShiftMin) * 100));
+  const barFillPct = checkedOut ? (checkOutPct ?? 100) : checkedIn ? nowPct : startPct;
+
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-blue-200/70 bg-gradient-to-br from-white via-blue-50/50 to-white p-6 sm:p-8 shadow-xl shadow-blue-900/5">
+      <div className="pointer-events-none absolute -top-20 -right-16 w-56 h-56 rounded-full bg-blue-400/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-16 -left-10 w-48 h-48 rounded-full bg-indigo-400/10 blur-3xl" />
+
+      <div className="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+        <div>
+          <h2 className="text-lg font-extrabold text-slate-950">Time Clock</h2>
+          <p className="mt-1 text-sm text-slate-600">Tap once to start your shift, tap again to end it.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          {checkedIn && !checkedOut && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 border border-emerald-200 px-3 py-1.5 text-xs font-bold text-emerald-700">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              LIVE
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={onRefresh}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3.5 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100 transition"
+          >
+            <FaSyncAlt className={cn(loading && "animate-spin")} />
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* ================= STICKY ANALYTICS ================= */}
-      <div className="sticky top-0 z-50">
-        <div className="rounded-3xl border border-white/10 bg-slate-950/70 backdrop-blur-xl p-4">
-          <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-                <div className="text-[11px] text-slate-400 mb-1">Select Month</div>
-                <select
-                  value={selectedKey}
-                  onChange={(e) => setSelectedKey(e.target.value)}
-                  className="bg-transparent text-white text-sm font-semibold outline-none"
-                >
-                  {monthOptions.map((o) => {
-                    const k = keyOf(o.month, o.year);
-                    return (
-                      <option key={k} value={k} className="bg-slate-900 text-white">
-                        {o.month} {o.year}
-                      </option>
-                    );
-                  })}
-                </select>
+      <div className="relative flex flex-col items-center gap-6 sm:flex-row sm:items-stretch sm:justify-center sm:gap-10">
+        {/* Circular ring clock */}
+        <div className="relative shrink-0 mx-auto sm:mx-0">
+          <svg width="168" height="168" viewBox="0 0 168 168" className="-rotate-90">
+            <circle cx="84" cy="84" r={radius} strokeWidth="10" className="fill-none stroke-slate-100" />
+            <circle
+              cx="84"
+              cy="84"
+              r={radius}
+              strokeWidth="10"
+              strokeLinecap="round"
+              className={cn("fill-none clock-ring-progress", ringColorClass)}
+              style={{
+                strokeDasharray: circumference,
+                strokeDashoffset: checkedIn || checkedOut ? dashOffset : circumference,
+              }}
+            />
+          </svg>
+          <div className="absolute inset-0 grid place-items-center">
+            <div className="text-center">
+              <div className="font-mono text-2xl font-black text-slate-950 tabular-nums leading-none">
+                {formatISTTime(now)}
               </div>
-
-              <div className="hidden sm:block">
-                <div className="text-xs text-slate-400">Attendance %</div>
-                <div className="text-xl font-extrabold text-white">{selectedAttendance ? `${attendancePct}%` : "—"}</div>
+              <div className="mt-1.5 text-[11px] font-bold uppercase tracking-wide text-slate-400">
+                {statusLabel} - IST
               </div>
-
-              <div className="hidden sm:block">
-                <div className="text-xs text-slate-400">Performance Score</div>
-                <div className="text-xl font-extrabold text-white">{selectedPerf ? `${perfScore}/100` : "—"}</div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 w-full xl:w-auto">
-              <MiniKpi label="Month Days" value={String(monthDays)} tone="cyan" />
-              <MiniKpi label="Sundays" value={String(monthSundays)} tone="amber" />
-              <MiniKpi label="Working" value={String(monthWorkingDays)} tone="emerald" />
-              <MiniKpi label="Present" value={String(present)} tone="emerald" />
-              <MiniKpi label="Absent" value={String(absent)} tone="rose" />
-              <MiniKpi label="Leave" value={String(leaves)} tone="amber" />
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ================= BODY ================= */}
-      <div className="grid lg:grid-cols-3 gap-6">
-        {/* Attendance card */}
-        <InfoCard title="Attendance Performance (Monthly)">
-          <div className="flex items-end justify-between">
-            <div>
-              <div className="text-xs text-slate-400">Attendance %</div>
-              <div className="text-3xl font-extrabold text-white">{selectedAttendance ? `${attendancePct}%` : "—"}</div>
-              <div className="mt-1 text-xs text-slate-500">
-                Present {present} / Working Days {monthWorkingDays} (Sunday excluded)
-              </div>
+        {/* Progress + actions */}
+        <div className="flex-1 flex flex-col justify-center gap-5 min-w-0">
+          <div>
+            <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
+              <span>{employee.shiftStart || "09:00"}</span>
+              <span>Shift Progress</span>
+              <span>{employee.shiftEnd || "18:00"}</span>
             </div>
-            <div className="text-right text-xs text-slate-400">
-              {selectedMonthYear.month} {FIXED_YEAR}
+            <div className="relative h-2.5 rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className={cn(
+                  "h-full rounded-full transition-all duration-700",
+                  checkedOut ? "bg-gradient-to-r from-emerald-400 to-emerald-600" : "bg-gradient-to-r from-blue-400 to-indigo-600"
+                )}
+                style={{ width: `${barFillPct}%` }}
+              />
+              {checkedIn && !checkedOut && (
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 h-3.5 w-3.5 rounded-full bg-blue-600 ring-4 ring-blue-200 animate-soft-bounce"
+                  style={{ left: `calc(${barFillPct}% - 7px)` }}
+                />
+              )}
             </div>
           </div>
 
-          <div className="mt-4">
-            <Bar label="Present" value={present} max={monthWorkingDays || 1} color="bg-emerald-500" />
-            <div className="mt-3" />
-            <Bar label="Absent" value={absent} max={monthWorkingDays || 1} color="bg-rose-500" />
-            <div className="mt-3" />
-            <Bar label="Leave" value={leaves} max={monthWorkingDays || 1} color="bg-amber-500" />
+          <div className="grid grid-cols-2 gap-3">
+            <PunchChip label="Check In" value={formatDisplayTime(today.checkIn)} tone="emerald" active={checkedIn} />
+            <PunchChip label="Check Out" value={formatDisplayTime(today.checkOut)} tone="blue" active={checkedOut} />
           </div>
-        </InfoCard>
 
-        {/* Salary card */}
-        <InfoCard title="Salary Summary (Monthly)">
-          {selectedPayment ? (
-            <>
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                <div className="text-xs text-slate-400">Net Pay</div>
-                <div className="text-2xl font-extrabold text-white">{formatINR((selectedPayment as any).net)}</div>
-                <div className="mt-1 text-xs text-slate-500">
-                  {selectedPayment.month} {selectedPayment.year}
-                </div>
+          <div className="pt-1">
+            {!checkedOut ? (
+              <button
+                type="button"
+                disabled={punching || (checkedIn && checkedOut)}
+                onClick={() => onPunch(checkedIn ? "out" : "in")}
+                className={cn(
+                  "group relative w-full inline-flex items-center justify-center gap-2.5 rounded-2xl px-6 py-4 text-sm font-extrabold text-white shadow-lg transition disabled:cursor-not-allowed disabled:opacity-60",
+                  checkedIn
+                    ? "bg-gradient-to-r from-rose-500 to-rose-600 shadow-rose-500/25 hover:shadow-rose-500/40"
+                    : "bg-gradient-to-r from-emerald-500 to-emerald-600 shadow-emerald-500/25 hover:shadow-emerald-500/40"
+                )}
+              >
+                {!checkedIn && !punching && (
+                  <span className="absolute inset-0 rounded-2xl animate-pulse-ring" />
+                )}
+                {checkedIn ? <FaStop /> : <FaPlay />}
+                {punching ? "Please wait..." : checkedIn ? "Clock Out" : "Clock In"}
+              </button>
+            ) : (
+              <div className="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl border-2 border-dashed border-emerald-300 bg-emerald-50 px-6 py-4 text-sm font-extrabold text-emerald-700">
+                <FaCheck /> Shift Completed for Today
               </div>
-
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <MiniKpi label="Basic" value={formatINR(selectedPayment.basic)} tone="cyan" />
-                <MiniKpi label="Allowances" value={formatINR(selectedPayment.allowances)} tone="emerald" />
-                <MiniKpi label="Deductions" value={formatINR(selectedPayment.deductions)} tone="rose" />
-              </div>
-            </>
-          ) : (
-            <EmptyState text="No salary data for selected month." />
-          )}
-        </InfoCard>
-
-        {/* ✅ Employee Performance */}
-        <InfoCard title="Employee Performance (Monthly)">
-          {selectedPerf ? (
-            <>
-              <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs text-slate-400">Performance Score</div>
-                    <div className="text-3xl font-extrabold text-white">{perfScore}/100</div>
-                    <div className="mt-1 text-xs text-slate-500">
-                      Rating: <span className="text-white font-semibold">{selectedPerf.rating.toFixed(1)}/5</span>
-                    </div>
-                  </div>
-                  <div className="text-right text-xs text-slate-400">
-                    {selectedPerf.month} {selectedPerf.year}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 space-y-3">
-                <Bar label="Productivity" value={selectedPerf.productivity} max={100} color="bg-cyan-500" />
-                <Bar label="Task Completion" value={selectedPerf.taskCompletion} max={100} color="bg-indigo-500" />
-                <Bar label="Punctuality" value={selectedPerf.punctuality} max={100} color="bg-emerald-500" />
-              </div>
-
-              <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
-                <div className="text-xs text-slate-400 font-semibold">Last 3 Months Trend</div>
-                <div className="mt-3 grid grid-cols-3 gap-3">
-                  {perfTrend.map((t) => (
-                    <div key={t.key} className="rounded-2xl border border-white/10 bg-black/30 p-3">
-                      <div className="text-xs text-slate-400">{t.key}</div>
-                      <div className="text-lg font-extrabold text-white mt-1">{t.score}</div>
-                      <div className="mt-2 h-2 bg-white/10 rounded-full overflow-hidden">
-                        <div className="h-2 bg-cyan-500 rounded-full" style={{ width: `${Math.min(100, t.score)}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </>
-          ) : (
-            <EmptyState text="No performance data for selected month." />
-          )}
-        </InfoCard>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-/* ================= UI ================= */
-
-function InfoCard({ title, children }: { title: string; children: React.ReactNode }) {
+function PunchChip({ label, value, tone, active }: { label: string; value?: string; tone: "emerald" | "blue"; active: boolean }) {
+  const toneMap = {
+    emerald: active ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-slate-200 bg-slate-50 text-slate-400",
+    blue: active ? "border-blue-200 bg-blue-50 text-blue-800" : "border-slate-200 bg-slate-50 text-slate-400",
+  };
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
-      <h3 className="text-sm font-bold text-white mb-4">{title}</h3>
-      {children}
+    <div className={cn("rounded-xl border px-4 py-2.5", toneMap[tone])}>
+      <div className="text-[10px] font-bold uppercase tracking-wide opacity-70">{label}</div>
+      <div className="mt-0.5 text-base font-black tabular-nums">{value || "--:--"}</div>
     </div>
   );
 }
 
-function Bar({
-  label,
-  value,
-  max,
-  color,
-}: {
-  label: string;
-  value: number;
-  max: number;
-  color: string;
-}) {
-  const pct = max ? Math.min(100, Math.round((value / max) * 100)) : 0;
+function HeroInfo({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div>
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-slate-400">{label}</span>
-        <span className="text-white">
-          {value} • {pct}%
-        </span>
-      </div>
-      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-        <div className={cn("h-2 rounded-full", color)} style={{ width: `${pct}%` }} />
-      </div>
+    <div className="rounded-2xl border border-white/20 bg-white/10 backdrop-blur px-4 py-3">
+      <div className="flex items-center gap-2 text-xs font-bold uppercase text-blue-100">{icon}{label}</div>
+      <div className="mt-1 text-sm font-extrabold text-white truncate">{value}</div>
     </div>
   );
 }
 
-function EmptyState({ text }: { text: string }) {
+function Metric({ label, value, helper, tone = "blue" }: { label: string; value: string; helper: string; tone?: "blue" | "emerald" | "rose" | "amber" }) {
+  const styles = {
+    blue: { border: "border-blue-200", accent: "from-blue-400 to-blue-600" },
+    emerald: { border: "border-emerald-200", accent: "from-emerald-400 to-emerald-600" },
+    rose: { border: "border-rose-200", accent: "from-rose-400 to-rose-600" },
+    amber: { border: "border-amber-200", accent: "from-amber-400 to-amber-600" },
+  };
+  const s = styles[tone];
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-6 text-center">
-      <div className="text-sm font-semibold text-white">No Data</div>
-      <div className="mt-1 text-xs text-slate-400">{text}</div>
+    <div className={cn("relative overflow-hidden rounded-2xl border bg-white p-5 shadow-sm hover:shadow-md transition-shadow", s.border)}>
+      <span className={cn("absolute top-0 left-0 h-1 w-full bg-gradient-to-r", s.accent)} />
+      <p className="text-sm font-bold text-slate-500">{label}</p>
+      <p className="mt-2 text-2xl font-black text-slate-950">{value}</p>
+      <p className="mt-1 text-xs font-medium text-slate-500">{helper}</p>
     </div>
   );
 }
 
-function MiniKpi({
-  label,
-  value,
-  tone = "cyan",
-}: {
-  label: string;
-  value: string;
-  tone?: "cyan" | "emerald" | "rose" | "amber";
-}) {
-  const ring =
-    tone === "emerald"
-      ? "border-emerald-400/20"
-      : tone === "rose"
-      ? "border-rose-400/20"
-      : tone === "amber"
-      ? "border-amber-400/20"
-      : "border-cyan-400/20";
-
-  const glow =
-    tone === "emerald"
-      ? "bg-[radial-gradient(circle_at_30%_10%,rgba(34,197,94,0.18),transparent_55%)]"
-      : tone === "rose"
-      ? "bg-[radial-gradient(circle_at_30%_10%,rgba(244,63,94,0.18),transparent_55%)]"
-      : tone === "amber"
-      ? "bg-[radial-gradient(circle_at_30%_10%,rgba(245,158,11,0.18),transparent_55%)]"
-      : "bg-[radial-gradient(circle_at_30%_10%,rgba(56,189,248,0.18),transparent_55%)]";
-
+function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className={cn("relative overflow-hidden rounded-2xl border bg-white/5 px-4 py-3", ring)}>
-      <div className={cn("absolute inset-0 opacity-80", glow)} />
-      <div className="relative">
-        <div className="text-xs text-slate-300">{label}</div>
-        <div className="mt-1 text-lg font-extrabold text-white truncate">{value}</div>
-      </div>
+    <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-3 text-sm last:border-0">
+      <span className="font-semibold text-slate-500">{label}</span>
+      <span className="text-right font-extrabold text-slate-900">{value}</span>
     </div>
   );
 }
 
-function GhostButton({ children, onClick }: { children: React.ReactNode; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="px-4 py-2 rounded-2xl bg-white/10 border border-white/10 hover:bg-white/15 text-white text-sm font-semibold transition"
-    >
-      {children}
-    </button>
-  );
+function Badge({ status }: { status: string }) {
+  const s = String(status || "NOT_MARKED").toUpperCase();
+  const tone = s.includes("PRESENT")
+    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+    : s.includes("LEAVE")
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : s.includes("ABSENT")
+        ? "bg-rose-50 text-rose-700 border-rose-200"
+        : "bg-slate-50 text-slate-600 border-slate-200";
+  return <span className={cn("inline-flex rounded-full border px-3 py-1 text-xs font-extrabold", tone)}>{s.replace(/_/g, " ")}</span>;
 }

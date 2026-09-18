@@ -18,27 +18,27 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md">
-      <div className="bg-gradient-to-br from-slate-800 to-blue-900 rounded-3xl shadow-2xl p-8 w-[90vw] max-w-md border border-white/20 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-blue-500/10 to-purple-500/10 rounded-3xl"></div>
-        <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-cyan-400/20 to-blue-500/20 rounded-full blur-xl"></div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 backdrop-blur-md">
+      <div className="bg-gradient-to-br from-white to-sky-50 rounded-3xl shadow-2xl p-8 w-[90vw] max-w-md border border-slate-200 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-sky-50 via-blue-50 to-indigo-50 rounded-3xl"></div>
+        <div className="absolute -top-10 -right-10 w-20 h-20 bg-gradient-to-br from-sky-100 to-indigo-100 rounded-full blur-xl"></div>
 
         <div className="relative z-10">
           <button
             onClick={onClose}
-            className="absolute -top-2 -right-2 w-8 h-8 flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all duration-300"
+            className="absolute -top-2 -right-2 w-8 h-8 flex items-center justify-center text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-full transition-all duration-300"
           >
             <FaTimes />
           </button>
 
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center">
-              <FaEnvelope className="text-white text-xl" />
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center">
+              <FaEnvelope className="text-slate-900 text-xl" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Reset Password</h2>
+            <h2 className="text-2xl font-bold text-slate-900">Reset Password</h2>
           </div>
 
-          <p className="text-slate-300 mb-6 leading-relaxed">
+          <p className="text-slate-600 mb-6 leading-relaxed">
             Enter your email address and we'll send you secure instructions to reset your password.
           </p>
 
@@ -47,7 +47,7 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
               <input
                 type="email"
                 placeholder="admin@company.com"
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-2xl outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-white placeholder-slate-400 backdrop-blur-sm transition-all duration-300"
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-sky-300 focus:border-transparent text-slate-900 placeholder-slate-400 backdrop-blur-sm transition-all duration-300"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -56,10 +56,10 @@ function ForgotPasswordModal({ onClose }: { onClose: () => void }) {
             <button
               type="button"
               onClick={handleSend}
-              className="w-full p-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 relative overflow-hidden group"
+              className="w-full p-4 bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-semibold rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-sky-300 relative overflow-hidden group"
             >
               <span className="relative z-10">Send Reset Instructions</span>
-              <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-sky-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </button>
           </div>
         </div>
@@ -130,10 +130,10 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-indigo-50 flex items-center justify-center p-4 relative overflow-hidden">
       {/* Background Effects */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-cyan-500/20 to-blue-600/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute -top-1/4 -left-1/4 w-1/2 h-1/2 bg-gradient-to-br from-sky-100 to-indigo-100 rounded-full blur-3xl animate-pulse" />
         <div className="absolute -bottom-1/4 -right-1/4 w-1/2 h-1/2 bg-gradient-to-tl from-purple-500/20 to-blue-600/20 rounded-full blur-3xl animate-pulse animation-delay-2000" />
         <div className="absolute top-1/3 left-1/3 w-64 h-64 bg-gradient-to-br from-indigo-400/10 to-purple-500/10 rounded-full blur-2xl animate-float" />
       </div>
@@ -144,7 +144,7 @@ export default function AdminLogin() {
       {/* Back Button */}
       <button
         onClick={() => navigate("/")}
-        className="absolute top-8 left-8 flex items-center gap-2 text-white/70 hover:text-white transition-colors duration-300 group"
+        className="absolute top-8 left-8 flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors duration-300 group"
       >
         <FaArrowLeft className="transition-transform group-hover:-translate-x-1" />
         <span>Back to Home</span>
@@ -153,29 +153,29 @@ export default function AdminLogin() {
       {showForgot && <ForgotPasswordModal onClose={() => setShowForgot(false)} />}
 
       <div className="w-full max-w-md relative">
-        <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500 rounded-3xl blur opacity-75 transition duration-1000 animate-tilt"></div>
+        <div className="absolute -inset-1 bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500 rounded-3xl blur opacity-75 transition duration-1000 animate-tilt"></div>
 
         <form
-          className="relative bg-gradient-to-br from-slate-800/90 to-blue-900/90 backdrop-blur-xl rounded-3xl p-10 border border-white/20 shadow-2xl"
+          className="relative bg-gradient-to-br from-white to-sky-50 backdrop-blur-xl rounded-3xl p-10 border border-slate-200 shadow-2xl"
           onSubmit={handleLogin}
         >
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center shadow-lg">
-              <FaShieldAlt className="text-3xl text-white" />
+            <div className="w-20 h-20 mx-auto mb-6 rounded-3xl bg-gradient-to-br from-sky-500 to-indigo-500 flex items-center justify-center shadow-lg">
+              <FaShieldAlt className="text-3xl text-slate-900" />
             </div>
-            <h1 className="text-3xl font-bold text-white mb-2">Admin Portal</h1>
-            <p className="text-slate-300">Secure access to administrative controls</p>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Admin Portal</h1>
+            <p className="text-slate-600">Secure access to administrative controls</p>
           </div>
 
           {/* Form Fields */}
           <div className="space-y-6">
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Administrator Username</label>
+              <label className="text-sm font-medium text-slate-600">Administrator Username</label>
               <input
                 type="text"
                 placeholder="Enter your admin username"
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-2xl outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-white placeholder-slate-400 backdrop-blur-sm transition-all duration-300"
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-sky-300 focus:border-transparent text-slate-900 placeholder-slate-400 backdrop-blur-sm transition-all duration-300"
                 value={loginCred.username}
                 name="username"
                 onChange={handleChange}
@@ -184,11 +184,11 @@ export default function AdminLogin() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-300">Secure Password</label>
+              <label className="text-sm font-medium text-slate-600">Secure Password</label>
               <input
                 type="password"
                 placeholder="Enter your secure password"
-                className="w-full p-4 bg-white/10 border border-white/20 rounded-2xl outline-none focus:ring-2 focus:ring-cyan-400 focus:border-transparent text-white placeholder-slate-400 backdrop-blur-sm transition-all duration-300"
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-sky-300 focus:border-transparent text-slate-900 placeholder-slate-400 backdrop-blur-sm transition-all duration-300"
                 value={loginCred.password}
                 name="password"
                 onChange={handleChange}
@@ -200,7 +200,7 @@ export default function AdminLogin() {
           {/* Forgot Password */}
           <div className="text-center mt-4 mb-8">
             <span
-              className="text-cyan-400 hover:text-cyan-300 text-sm font-medium cursor-pointer transition-colors duration-300"
+              className="text-sky-600 hover:text-sky-600 text-sm font-medium cursor-pointer transition-colors duration-300"
               onClick={() => setShowForgot(true)}
             >
               Forgot your password?
@@ -211,7 +211,7 @@ export default function AdminLogin() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full p-4 bg-gradient-to-r from-cyan-500 to-blue-500 text-white font-bold rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-cyan-400 relative overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full p-4 bg-gradient-to-r from-sky-500 to-indigo-500 text-white font-bold rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-sky-300 relative overflow-hidden group disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <span className="relative z-10 flex items-center justify-center gap-2">
               {loading ? (
@@ -226,12 +226,12 @@ export default function AdminLogin() {
                 </>
               )}
             </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-cyan-400 to-blue-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-sky-600 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           </button>
 
           {/* Security Notice */}
-          <div className="mt-8 p-4 bg-white/5 border border-white/10 rounded-2xl backdrop-blur-sm">
-            <p className="text-xs text-slate-400 text-center leading-relaxed">
+          <div className="mt-8 p-4 bg-slate-50 border border-slate-200 rounded-2xl backdrop-blur-sm">
+            <p className="text-xs text-slate-500 text-center leading-relaxed">
               🔒 Your session is protected with enterprise-grade encryption. All administrative actions are logged for
               security compliance.
             </p>

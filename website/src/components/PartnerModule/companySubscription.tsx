@@ -100,7 +100,7 @@ type StoredSubscription = {
 };
 
 function formatINR(n: number) {
-  return `₹${n.toLocaleString("en-IN")}`;
+  return `INR ${n.toLocaleString("en-IN")}`;
 }
 
 function priceText(plan: Plan, billing: Billing) {
@@ -182,7 +182,7 @@ export default function companySubscription() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
 
-  // ✅ history open state (button moved near billing toggle)
+  // ? history open state (button moved near billing toggle)
   const [historyOpen, setHistoryOpen] = useState(true);
 
   const [stored, setStored] = useState<StoredSubscription | null>(() => safeReadSubscription());
@@ -299,7 +299,7 @@ export default function companySubscription() {
     setStored(null);
   };
 
-  // ✅ Export to PDF (whole page inside exportRef)
+  // ? Export to PDF (whole page inside exportRef)
   const exportToPDF = async () => {
     const node = exportRef.current;
     if (!node) return;
@@ -311,7 +311,7 @@ export default function companySubscription() {
     const canvas = await html2canvas(node, {
       scale: 2,
       useCORS: true,
-      backgroundColor: "#020617", // slate-950-ish
+      backgroundColor: "#dbeafe",
       windowWidth: node.scrollWidth,
       windowHeight: node.scrollHeight,
     });
@@ -344,15 +344,15 @@ export default function companySubscription() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-40px)] w-full p-4 sm:p-6 lg:p-8">
-      {/* ✅ Everything we want in PDF goes inside this wrapper */}
+    <div className="min-h-[calc(100vh-40px)] w-full p-2 sm:p-4">
+      {/* ? Everything we want in PDF goes inside this wrapper */}
       <div ref={exportRef}>
         {/* HEADER */}
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-5 sm:p-6">
+        <div className="rounded-3xl border border-blue-300/70 bg-blue-50/95 p-5 sm:p-6 shadow-xl shadow-blue-900/10">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <div className="flex items-center gap-2 text-white">
-                <FaShieldAlt className="text-cyan-300" />
+              <div className="flex items-center gap-3 text-blue-950">
+                <span className="grid h-11 w-11 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md shadow-blue-500/20"><FaShieldAlt /></span>
                 <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight">
                   Subscription & Access
                 </h1>
@@ -363,10 +363,10 @@ export default function companySubscription() {
                   className={cn(
                     "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold border",
                     status === "ACTIVE"
-                      ? "bg-emerald-500/10 border-emerald-400/20 text-emerald-200"
+                      ? "bg-emerald-50 border-emerald-300 text-emerald-700"
                       : status === "EXPIRED"
-                      ? "bg-red-500/10 border-red-400/20 text-red-200"
-                      : "bg-white/5 border-white/10 text-slate-200"
+                      ? "bg-rose-50 border-rose-300 text-rose-700"
+                      : "bg-blue-100 border-blue-300 text-blue-800"
                   )}
                 >
                   {status === "ACTIVE" ? (
@@ -384,9 +384,9 @@ export default function companySubscription() {
                 </span>
 
                 {stored && (
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-slate-600">
                     Expires:{" "}
-                    <span className="text-slate-200 font-semibold">
+                    <span className="text-slate-950 font-semibold">
                       {new Date(stored.expiresAt).toLocaleDateString()}
                     </span>{" "}
                     ({Math.max(daysLeft(stored.expiresAt), 0)} days left)
@@ -397,14 +397,14 @@ export default function companySubscription() {
               {/* Counts */}
               {stored && (
                 <div className="mt-3 flex flex-wrap gap-2">
-                  <span className="text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                  <span className="text-xs text-slate-700 bg-blue-100 border border-blue-300 px-3 py-1 rounded-full">
                     Purchases:{" "}
-                    <span className="text-white font-semibold">{stored.purchaseCount}</span>
+                    <span className="text-blue-950 font-semibold">{stored.purchaseCount}</span>
                   </span>
 
-                  <span className="text-xs text-slate-300 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+                  <span className="text-xs text-slate-700 bg-blue-100 border border-blue-300 px-3 py-1 rounded-full">
                     Renewals:{" "}
-                    <span className="text-white font-semibold">{stored.renewCount}</span>
+                    <span className="text-blue-950 font-semibold">{stored.renewCount}</span>
                   </span>
                 </div>
               )}
@@ -413,10 +413,10 @@ export default function companySubscription() {
             {/* ACCESS CARD */}
             <div
               className={cn(
-                "rounded-2xl border p-4 sm:p-5 w-full sm:w-[360px]",
+                "rounded-2xl border p-4 sm:p-5 w-full sm:w-[360px] bg-white/80 shadow-sm",
                 accessBlocked
-                  ? "border-red-500/20 bg-red-500/5"
-                  : "border-emerald-500/20 bg-emerald-500/5"
+                  ? "border-rose-300"
+                  : "border-emerald-300"
               )}
             >
               <div className="flex items-start gap-3">
@@ -424,18 +424,18 @@ export default function companySubscription() {
                   className={cn(
                     "h-10 w-10 rounded-2xl grid place-items-center border",
                     accessBlocked
-                      ? "bg-red-500/10 border-red-500/20 text-red-200"
-                      : "bg-emerald-500/10 border-emerald-500/20 text-emerald-200"
+                      ? "bg-rose-50 border-rose-300 text-rose-700"
+                      : "bg-emerald-50 border-emerald-300 text-emerald-700"
                   )}
                 >
                   {accessBlocked ? <FaTimesCircle /> : <FaCheckCircle />}
                 </div>
 
                 <div className="min-w-0">
-                  <div className="text-white font-bold">
+                  <div className="text-slate-950 font-bold">
                     {accessBlocked ? "Service Locked" : "Service Unlocked"}
                   </div>
-                  <div className="text-sm text-slate-300 mt-1">
+                  <div className="text-sm text-slate-600 mt-1">
                     {accessBlocked
                       ? "Your company must renew/purchase a subscription to continue accessing the services."
                       : "Your company can access all enabled services based on your plan limits."}
@@ -446,7 +446,7 @@ export default function companySubscription() {
               <div className="mt-4 flex flex-wrap gap-2">
                 <button
                   onClick={() => setConfirmOpen(true)}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border transition bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-400/30 text-cyan-100"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border transition bg-gradient-to-r from-blue-500 to-blue-700 border-blue-500 text-white shadow-sm hover:from-blue-600 hover:to-blue-800"
                 >
                   <FaCreditCard />
                   {status === "ACTIVE" ? "Upgrade / Extend" : "Purchase Subscription"}
@@ -456,7 +456,7 @@ export default function companySubscription() {
                   <>
                     <button
                       onClick={() => setInvoiceOpen(true)}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-white/5 hover:bg-white/10 border-white/10 text-white transition"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-900 transition"
                     >
                       <FaFileAlt />
                       View Invoice
@@ -464,7 +464,7 @@ export default function companySubscription() {
 
                     <button
                       onClick={handleRemoveLocal}
-                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-red-500/10 hover:bg-red-500/20 border-red-500/20 text-red-200 transition"
+                      className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-rose-50 hover:bg-rose-100 border-rose-300 text-rose-700 transition"
                     >
                       <FaTrash />
                       Remove Local
@@ -474,7 +474,7 @@ export default function companySubscription() {
               </div>
 
               {status === "EXPIRED" && (
-                <div className="mt-3 text-xs text-red-200/90">
+                <div className="mt-3 text-xs text-rose-700">
                   Tip: Renew now to continue accessing the platform without interruption.
                 </div>
               )}
@@ -486,23 +486,23 @@ export default function companySubscription() {
         <div className="mt-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <div className="text-white font-extrabold text-lg">Choose a Plan</div>
-              <div className="text-sm text-slate-300 mt-1">
+              <div className="text-slate-950 font-extrabold text-lg">Choose a Plan</div>
+              <div className="text-sm text-slate-600 mt-1">
                 Pick a plan and billing cycle. Renew anytime to continue access.
               </div>
             </div>
 
-            {/* ✅ Right side actions: Monthly/Yearly + History + Export PDF */}
+            {/* ? Right side actions: Monthly/Yearly + History + Export PDF */}
             <div className="flex flex-wrap items-center gap-2">
               {/* billing toggle */}
-              <div className="inline-flex rounded-2xl border border-white/10 bg-white/5 p-1">
+              <div className="inline-flex rounded-2xl border border-blue-300 bg-blue-100 p-1">
                 <button
                   onClick={() => setBilling("MONTHLY")}
                   className={cn(
                     "px-4 py-2 rounded-xl text-sm font-semibold transition",
                     billing === "MONTHLY"
-                      ? "bg-white/10 text-white"
-                      : "text-slate-300 hover:text-white"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-blue-800 hover:text-blue-950"
                   )}
                 >
                   Monthly
@@ -512,36 +512,36 @@ export default function companySubscription() {
                   className={cn(
                     "px-4 py-2 rounded-xl text-sm font-semibold transition",
                     billing === "YEARLY"
-                      ? "bg-white/10 text-white"
-                      : "text-slate-300 hover:text-white"
+                      ? "bg-blue-600 text-white shadow-sm"
+                      : "text-blue-800 hover:text-blue-950"
                   )}
                 >
                   Yearly <span className="text-xs text-emerald-200 ml-1"></span>
                 </button>
               </div>
 
-              {/* ✅ history toggle button moved here */}
+              {/* ? history toggle button moved here */}
               <button
                 onClick={() => setHistoryOpen((s) => !s)}
                 className={cn(
                   "inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition",
-                  "bg-white/5 hover:bg-white/10 border-white/10 text-white"
+                  "bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-900"
                 )}
                 title="Show/Hide history"
               >
-                <FaHistory className="text-cyan-300" />
+                <FaHistory className="text-blue-600" />
                 History
                 {stored?.history?.length ? (
-                  <span className="ml-1 text-xs font-bold bg-white/10 border border-white/10 px-2 py-0.5 rounded-full">
+                  <span className="ml-1 text-xs font-bold bg-blue-100 border border-blue-300 px-2 py-0.5 rounded-full text-blue-900">
                     {stored.history.length}
                   </span>
                 ) : null}
               </button>
 
-              {/* ✅ export pdf */}
+              {/* ? export pdf */}
               <button
                 onClick={exportToPDF}
-                className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-400/30 text-cyan-100"
+                className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition bg-gradient-to-r from-blue-500 to-blue-700 border-blue-500 text-white shadow-sm hover:from-blue-600 hover:to-blue-800"
               >
                 <FaDownload />
                 Export PDF
@@ -558,26 +558,33 @@ export default function companySubscription() {
                   key={p.key}
                   onClick={() => setSelectedPlan(p.key)}
                   className={cn(
-                    "text-left rounded-3xl border p-5 transition relative overflow-hidden",
+                    "group text-left rounded-3xl border p-5 transition relative overflow-hidden shadow-lg shadow-blue-900/10",
                     isSelected
-                      ? "border-cyan-400/35 bg-gradient-to-b from-cyan-500/10 to-blue-500/5"
-                      : "border-white/10 bg-white/5 hover:bg-white/10"
+                      ? "border-blue-600 bg-[#dbeafe] ring-2 ring-blue-400/60"
+                      : "border-blue-300 bg-[#f8fbff] hover:bg-[#eff6ff] hover:border-blue-500"
                   )}
                 >
-                  
+                  <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-blue-500 to-blue-700" />
+                  {p.highlight && (
+                    <div className="absolute right-4 top-4 rounded-full border border-blue-300 bg-blue-100 px-3 py-1 text-[11px] font-bold text-blue-800">
+                      Popular
+                    </div>
+                  )}
 
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start justify-between gap-4 pr-20">
                     <div className="min-w-0">
-                      <div className="flex items-center gap-2 text-white font-extrabold text-lg">
-                        <span className="text-cyan-300">{p.icon}</span>
+                      <div className="flex items-center gap-3 text-slate-950 font-extrabold text-xl">
+                        <span className="grid h-10 w-10 place-items-center rounded-2xl bg-blue-100 text-blue-700 ring-1 ring-blue-300">
+                          {p.icon}
+                        </span>
                         {p.title}
                       </div>
-                      <div className="text-sm text-slate-300 mt-1">{p.subtitle}</div>
-                      <div className="text-xs text-slate-400 mt-1">{p.tagline}</div>
+                      <div className="text-sm text-slate-600 mt-1">{p.subtitle}</div>
+                      <div className="text-xs text-slate-600 mt-1">{p.tagline}</div>
                     </div>
 
-                    <div className="text-right">
-                      <div className="text-white font-extrabold text-base">
+                    <div className="text-right shrink-0">
+                      <div className="text-blue-950 font-black text-lg">
                         {priceText(p, billing)}
                       </div>
                     </div>
@@ -592,8 +599,8 @@ export default function companySubscription() {
 
                   <div className="mt-4 space-y-2">
                     {p.features.map((f, idx) => (
-                      <div key={idx} className="flex items-center gap-2 text-sm text-slate-200">
-                        <FaCheckCircle className="text-emerald-300" />
+                      <div key={idx} className="flex items-center gap-2 text-sm text-slate-700">
+                        <FaCheckCircle className="text-emerald-600" />
                         <span className="truncate">{f}</span>
                       </div>
                     ))}
@@ -604,8 +611,8 @@ export default function companySubscription() {
                       className={cn(
                         "w-full rounded-2xl px-4 py-3 text-center text-sm font-semibold border transition",
                         isSelected
-                          ? "bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-400/30 text-cyan-100"
-                          : "bg-white/5 hover:bg-white/10 border-white/10 text-white"
+                          ? "bg-gradient-to-r from-blue-500 to-blue-700 border-blue-500 text-white"
+                          : "bg-white hover:bg-blue-100 border-blue-300 text-blue-900"
                       )}
                     >
                       {isSelected ? "Selected" : "Select Plan"}
@@ -616,14 +623,14 @@ export default function companySubscription() {
             })}
           </div>
 
-          <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between rounded-3xl border border-white/10 bg-white/5 p-4">
+          <div className="mt-5 flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between rounded-3xl border border-blue-300 bg-blue-50/90 p-4 shadow-sm">
             <div className="min-w-0">
-              <div className="text-white font-bold">Selected Plan</div>
-              <div className="text-sm text-slate-300 mt-1">
-                {selectedPlanObj.title} • {billing} •{" "}
-                <span className="text-white font-semibold">{priceText(selectedPlanObj, billing)}</span>
+              <div className="text-slate-950 font-bold">Selected Plan</div>
+              <div className="text-sm text-slate-600 mt-1">
+                {selectedPlanObj.title} - {billing} -{" "}
+                <span className="text-blue-950 font-semibold">{priceText(selectedPlanObj, billing)}</span>
               </div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xs text-slate-600 mt-1">
                 Renew required if expired to continue accessing services.
               </div>
             </div>
@@ -631,7 +638,7 @@ export default function companySubscription() {
             <div className="flex gap-2">
               <button
                 onClick={() => setConfirmOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-400/30 text-cyan-100 transition"
+                className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-gradient-to-r from-blue-500 to-blue-700 border-blue-500 text-white shadow-sm hover:from-blue-600 hover:to-blue-800 transition"
               >
                 <FaCreditCard />
                 {selectedPlanObj.pricing.type === "CUSTOM"
@@ -644,7 +651,7 @@ export default function companySubscription() {
               {status !== "ACTIVE" && (
                 <button
                   onClick={handleRenew}
-                  className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-white/5 hover:bg-white/10 border-white/10 text-white transition"
+                  className="inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold border bg-blue-50 hover:bg-blue-100 border-blue-300 text-blue-900 transition"
                 >
                   <FaRedoAlt />
                   Renew
@@ -656,12 +663,12 @@ export default function companySubscription() {
 
         {/* HISTORY (toggle controlled by button near billing) */}
         {stored && historyOpen && (
-          <div className="mt-6 rounded-3xl border border-white/10 bg-white/5 p-5">
+          <div className="mt-6 rounded-3xl border border-blue-300 bg-blue-50/90 p-5 shadow-sm">
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-white font-extrabold">
-                <FaHistory className="text-cyan-300" />
+              <div className="flex items-center gap-2 text-slate-950 font-extrabold">
+                <FaHistory className="text-blue-600" />
                 Subscription History
-                <span className="ml-2 text-xs font-semibold text-slate-200 bg-white/10 border border-white/10 px-2 py-1 rounded-full">
+                <span className="ml-2 text-xs font-semibold text-blue-900 bg-blue-100 border border-blue-300 px-2 py-1 rounded-full">
                   {stored.history.length}
                 </span>
               </div>
@@ -674,13 +681,13 @@ export default function companySubscription() {
                 .map((h, i) => (
                   <div
                     key={`${h.purchasedAt}-${i}`}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-2xl border border-blue-300 bg-white/70 px-4 py-3"
                   >
-                    <div className="text-sm text-white font-semibold">
-                      {h.planKey} • {h.billing}
+                    <div className="text-sm text-slate-950 font-semibold">
+                      {h.planKey} - {h.billing}
                     </div>
-                    <div className="text-xs text-slate-300">
-                      {new Date(h.purchasedAt).toLocaleDateString()} →{" "}
+                    <div className="text-xs text-slate-600">
+                      {new Date(h.purchasedAt).toLocaleDateString()} to {" "}
                       {new Date(h.expiresAt).toLocaleDateString()}
                     </div>
                   </div>
@@ -694,13 +701,13 @@ export default function companySubscription() {
       {confirmOpen && (
         <ModalShell onClose={() => setConfirmOpen(false)} title="Confirm Subscription">
           {selectedPlanObj.pricing.type === "CUSTOM" ? (
-            <div className="text-sm text-slate-300">
-              Enterprise uses <span className="text-white font-semibold">custom pricing</span>.
+            <div className="text-sm text-slate-600">
+              Enterprise uses <span className="text-blue-950 font-semibold">custom pricing</span>.
               Please contact sales to activate this plan.
               <div className="mt-4 flex justify-end">
                 <button
                   onClick={() => setConfirmOpen(false)}
-                  className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-semibold px-4 py-2 transition"
+                  className="rounded-xl border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 font-semibold px-4 py-2 transition"
                 >
                   Close
                 </button>
@@ -708,20 +715,20 @@ export default function companySubscription() {
             </div>
           ) : (
             <>
-              <div className="text-sm text-slate-300 leading-relaxed">
+              <div className="text-sm text-slate-600 leading-relaxed">
                 You are about to purchase{" "}
-                <span className="text-white font-semibold">{selectedPlanObj.title}</span>{" "}
-                on <span className="text-white font-semibold">{billing}</span>.
+                <span className="text-blue-950 font-semibold">{selectedPlanObj.title}</span>{" "}
+                on <span className="text-blue-950 font-semibold">{billing}</span>.
               </div>
 
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <div className="mt-4 rounded-2xl border border-blue-300 bg-white/70 p-4">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-slate-300">Price</span>
-                  <span className="text-white font-bold">{priceText(selectedPlanObj, billing)}</span>
+                  <span className="text-slate-600">Price</span>
+                  <span className="text-slate-950 font-bold">{priceText(selectedPlanObj, billing)}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm mt-2">
-                  <span className="text-slate-300">Duration</span>
-                  <span className="text-white font-semibold">
+                  <span className="text-slate-600">Duration</span>
+                  <span className="text-blue-950 font-semibold">
                     {billing === "MONTHLY" ? "30 days" : "365 days"}
                   </span>
                 </div>
@@ -730,13 +737,13 @@ export default function companySubscription() {
               <div className="mt-5 flex flex-col sm:flex-row gap-2 sm:justify-end">
                 <button
                   onClick={() => setConfirmOpen(false)}
-                  className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-semibold px-4 py-2 transition"
+                  className="rounded-xl border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 font-semibold px-4 py-2 transition"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handlePurchase}
-                  className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-100 font-semibold px-4 py-2 transition"
+                  className="rounded-xl border border-blue-500 bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-semibold px-4 py-2 transition"
                 >
                   Confirm & Pay 
                 </button>
@@ -749,39 +756,39 @@ export default function companySubscription() {
       {/* INVOICE MODAL */}
       {invoiceOpen && stored && (
         <ModalShell onClose={() => setInvoiceOpen(false)} title="Invoice">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-            <div className="text-sm text-slate-300">
+          <div className="rounded-2xl border border-blue-300 bg-white/70 p-4">
+            <div className="text-sm text-slate-600">
               Plan:{" "}
-              <span className="text-white font-semibold">
+              <span className="text-blue-950 font-semibold">
                 {PLANS.find((p) => p.key === stored.planKey)?.title}
               </span>
             </div>
-            <div className="text-sm text-slate-300 mt-2">
-              Billing: <span className="text-white font-semibold">{stored.billing}</span>
+            <div className="text-sm text-slate-600 mt-2">
+              Billing: <span className="text-blue-950 font-semibold">{stored.billing}</span>
             </div>
-            <div className="text-sm text-slate-300 mt-2">
+            <div className="text-sm text-slate-600 mt-2">
               Purchased:{" "}
-              <span className="text-white font-semibold">
+              <span className="text-blue-950 font-semibold">
                 {new Date(stored.purchasedAt).toLocaleString()}
               </span>
             </div>
-            <div className="text-sm text-slate-300 mt-2">
+            <div className="text-sm text-slate-600 mt-2">
               Expires:{" "}
-              <span className="text-white font-semibold">
+              <span className="text-blue-950 font-semibold">
                 {new Date(stored.expiresAt).toLocaleString()}
               </span>
             </div>
-            <div className="text-sm text-slate-300 mt-2">
+            <div className="text-sm text-slate-600 mt-2">
               Purchases:{" "}
-              <span className="text-white font-semibold">{stored.purchaseCount}</span> • Renewals:{" "}
-              <span className="text-white font-semibold">{stored.renewCount}</span>
+              <span className="text-blue-950 font-semibold">{stored.purchaseCount}</span> - Renewals:{" "}
+              <span className="text-blue-950 font-semibold">{stored.renewCount}</span>
             </div>
           </div>
 
           <div className="mt-5 flex justify-end">
             <button
               onClick={() => setInvoiceOpen(false)}
-              className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white font-semibold px-4 py-2 transition"
+              className="rounded-xl border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 font-semibold px-4 py-2 transition"
             >
               Close
             </button>
@@ -795,9 +802,9 @@ export default function companySubscription() {
 /* UI helpers */
 function InfoPill({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2">
-      <div className="text-[11px] text-slate-400">{label}</div>
-      <div className="text-sm font-semibold text-white truncate">{value}</div>
+    <div className="rounded-2xl border border-blue-300 bg-white/70 px-3 py-2">
+      <div className="text-[11px] text-slate-600">{label}</div>
+      <div className="text-sm font-semibold text-blue-950 truncate">{value}</div>
     </div>
   );
 }
@@ -814,20 +821,20 @@ function ModalShell({
   return (
     <div className="fixed inset-0 z-[999] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative w-full max-w-lg rounded-3xl border border-white/10 bg-slate-950 shadow-2xl overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <div className="text-white font-extrabold">{title}</div>
+      <div className="relative w-full max-w-lg rounded-3xl border border-blue-300 bg-blue-50 shadow-2xl overflow-hidden">
+        <div className="flex items-center justify-between p-4 border-b border-blue-300">
+          <div className="text-slate-950 font-extrabold">{title}</div>
           <button
             onClick={onClose}
-            className="rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-white px-3 py-2 transition"
+            className="rounded-xl border border-blue-300 bg-white hover:bg-blue-100 text-blue-900 px-3 py-2 transition"
           >
-            ✕
+            x
           </button>
         </div>
         <div className="p-4">{children}</div>
-        <div className="p-4 border-t border-white/10 text-xs text-slate-400 flex items-center gap-2">
-          <FaRegClock className="text-slate-300" />
-           mode: Payment is simulated .
+        <div className="p-4 border-t border-blue-300 text-xs text-slate-600 flex items-center gap-2">
+          <FaRegClock className="text-slate-600" />
+          Payment is simulated.
         </div>
       </div>
     </div>

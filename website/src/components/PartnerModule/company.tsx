@@ -31,7 +31,7 @@ export default function CompanyLayout() {
   }, [pathname]);
 
   useEffect(() => {
-    mainRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [active]);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ export default function CompanyLayout() {
 
   const setTab = (t: CompanyTab) => {
     setActive(t);
-    // ✅ IMPORTANT: use RELATIVE navigation inside /company route
+    // IMPORTANT: use RELATIVE navigation inside /company route
     navigate(t === "dashboard" ? "dashboard" : t);
     setSidebarOpen(false);
   };
@@ -82,7 +82,7 @@ export default function CompanyLayout() {
   }, [active]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white">
+    <div className="company-theme min-h-screen bg-sky-100 text-slate-900">
       <CompanySidebar
         active={active}
         setActive={setTab}
@@ -94,10 +94,10 @@ export default function CompanyLayout() {
 
       <div className="lg:ml-72">
         {/* Topbar */}
-        <div className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur">
-          <div className="flex items-center px-4 sm:px-6 py-4">
+        <div className="sticky top-0 z-40 border-b border-blue-300/70 bg-blue-100/90 shadow-sm shadow-blue-900/5 backdrop-blur">
+          <div className="flex items-center px-4 sm:px-6 py-3.5">
             <button
-              className="lg:hidden inline-flex items-center justify-center rounded-xl bg-white/10 border border-white/10 px-3 py-2 hover:bg-white/15"
+              className="lg:hidden inline-flex items-center justify-center rounded-xl border border-blue-200 bg-white/80 px-3 py-2 text-blue-800 hover:bg-blue-50"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open sidebar"
             >
@@ -105,9 +105,9 @@ export default function CompanyLayout() {
             </button>
 
             <div className="ml-3 leading-tight">
-              <div className="text-lg font-extrabold">{pageTitle}</div>
-              <div className="text-xs text-slate-300">
-                {companyName} • HireMe • {companyStatus}
+              <div className="text-lg font-extrabold text-slate-950">{pageTitle}</div>
+              <div className="text-xs text-slate-500">
+                {companyName} - HireMe - {companyStatus}
               </div>
             </div>
           </div>
@@ -117,8 +117,7 @@ export default function CompanyLayout() {
           ref={mainRef}
           className={cn(
             "px-4 sm:px-6 py-6",
-            "h-[calc(100vh-72px)] overflow-y-auto",
-            "min-h-[calc(100vh-72px)]"
+            "min-h-[calc(100vh-72px)] overflow-x-hidden"
           )}
         >
           <Outlet />

@@ -17,8 +17,10 @@ api.interceptors.request.use((config) => {
    */
   const adminToken = localStorage.getItem("adminAuthToken");
   const userToken = localStorage.getItem("authToken");
+  const requestUrl = String(config.url || "");
+  const isAdminRequest = requestUrl.includes("/api/admin");
 
-  if (adminToken) {
+  if (isAdminRequest && adminToken) {
     config.headers.Authorization = `Bearer ${adminToken}`;
   } else if (userToken) {
     config.headers.Authorization = `Bearer ${userToken}`;
@@ -49,8 +51,15 @@ api.interceptors.response.use(
   (error) => {
     // Optional: global auth handling
     if (error.response?.status === 401) {
-      // token expired / invalid
-      // DO NOT auto logout admin silently
+      const message = String(error.response?.data?.message || "");
+      const requestUrl = String(error.config?.url || "");
+      const isAdminRequest = requestUrl.includes("/api/admin");
+
+      if (!isAdminRequest && message.toLowerCase().includes("token expired")) {
+        localStorage.removeItem("authToken");
+        localStorage.setItem("authSessionExpired", "true");
+      }
+
       console.warn("Unauthorized request");
     }
     return Promise.reject(error);

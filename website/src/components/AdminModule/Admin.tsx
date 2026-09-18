@@ -58,7 +58,7 @@ export default function Admin() {
   }, [active]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-indigo-50 text-white">
       <AdminSidebar
         active={active}
         setActive={setTab}
@@ -69,10 +69,10 @@ export default function Admin() {
       {/* same spacing pattern as Employee.tsx */}
       <div className="lg:ml-72">
         {/* Topbar */}
-        <div className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/60 backdrop-blur">
+        <div className="sticky top-0 z-40 border-b border-slate-200 bg-white/85 backdrop-blur">
           <div className="flex items-center px-4 sm:px-6 py-4">
             <button
-              className="lg:hidden inline-flex items-center justify-center rounded-xl bg-white/10 border border-white/10 px-3 py-2 hover:bg-white/15"
+              className="lg:hidden inline-flex items-center justify-center rounded-xl bg-slate-50 border border-slate-200 px-3 py-2 hover:bg-slate-100"
               onClick={() => setSidebarOpen(true)}
               aria-label="Open sidebar"
             >
@@ -81,7 +81,7 @@ export default function Admin() {
 
             <div className="ml-3 leading-tight">
               <div className="text-lg font-extrabold">{pageTitle}</div>
-              <div className="text-xs text-slate-300">Admin Panel • HireMe</div>
+              <div className="text-xs text-slate-600">Admin Panel • HireMe</div>
             </div>
           </div>
         </div>
@@ -97,11 +97,11 @@ export default function Admin() {
         >
           <Suspense
             fallback={
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-                <div className="h-5 w-48 bg-white/10 rounded mb-4 animate-pulse" />
-                <div className="h-4 w-full bg-white/10 rounded mb-2 animate-pulse" />
-                <div className="h-4 w-4/5 bg-white/10 rounded mb-2 animate-pulse" />
-                <div className="h-4 w-2/3 bg-white/10 rounded animate-pulse" />
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
+                <div className="h-5 w-48 bg-slate-50 rounded mb-4 animate-pulse" />
+                <div className="h-4 w-full bg-slate-50 rounded mb-2 animate-pulse" />
+                <div className="h-4 w-4/5 bg-slate-50 rounded mb-2 animate-pulse" />
+                <div className="h-4 w-2/3 bg-slate-50 rounded animate-pulse" />
               </div>
             }
           >

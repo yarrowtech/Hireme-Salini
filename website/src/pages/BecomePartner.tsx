@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 import { UserContext } from "../context/UserContext";
 
-// ✅ NEW: use company api (axios)
+// ? NEW: use company api (axios)
 import companyApi from "../api/company.api.js";
 
 import {
@@ -67,7 +67,7 @@ export default function BecomePartner() {
   const [previewVisible, setPreviewVisible] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ✅ Subscription Plan state
+  // ? Subscription Plan state
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("MONTHLY");
   const [selectedPlan, setSelectedPlan] = useState<PlanKey>("PROFESSIONAL");
 
@@ -150,7 +150,7 @@ export default function BecomePartner() {
     }));
   }
 
-  // ✅ UPDATED: submit via companyApi (NO fetch, NO FormData here)
+  // ? UPDATED: submit via companyApi (NO fetch, NO FormData here)
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (currentStep !== 4) return;
@@ -161,8 +161,8 @@ export default function BecomePartner() {
       const payload = {
         ...requestDetails,
         files,
-        planKey: selectedPlan,     // ✅ backend expects planKey
-        billingCycle,             // ✅ backend expects billingCycle
+        planKey: selectedPlan,     // ? backend expects planKey
+        billingCycle,             // ? backend expects billingCycle
       };
 
       const data = await companyApi.sendRequest(payload);
@@ -182,7 +182,7 @@ export default function BecomePartner() {
     }
   }
 
-  // ✅ UPDATED: just trigger submit logic
+  // ? UPDATED: just trigger submit logic
   async function handleFinalSubmit() {
     const fakeEvent = { preventDefault: () => {} } as any;
     await handleSubmit(fakeEvent);
@@ -388,7 +388,7 @@ export default function BecomePartner() {
               </div>
             )}
 
-            {/* ✅ Step 3: Choose subscription plan (LIKE SCREENSHOT) */}
+            {/* ? Step 3: Choose subscription plan (LIKE SCREENSHOT) */}
             {currentStep === 3 && (
               <div className="space-y-7 w-full  max-w-[1600px] mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 w-full">
@@ -635,7 +635,7 @@ function PlanCard({
     return (
       <div className="text-right">
         <div className="text-xl font-extrabold text-white">
-          ₹{formatINR(v || 0)}
+          ?{formatINR(v || 0)}
           <span className="text-xs font-semibold text-slate-300"> {suffix}</span>
         </div>
       </div>
@@ -788,7 +788,7 @@ function FileUploadCard({
         </div>
         <div>
           <h4 className="font-semibold text-white">{label}</h4>
-          <p className="text-xs text-slate-400">{required ? "Required" : "Optional"} • PDF only</p>
+          <p className="text-xs text-slate-400">{required ? "Required" : "Optional"} � PDF only</p>
         </div>
       </div>
 
@@ -853,7 +853,7 @@ function ReviewSection({
 }) {
   return (
     <div className="space-y-6">
-      {/* ✅ Selected Plan Review */}
+      {/* ? Selected Plan Review */}
       <div className="p-6 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-2xl border border-cyan-400/15">
         <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
           <FaBolt className="text-cyan-300" />
@@ -947,10 +947,10 @@ function ReviewSection({
               reviewed within 3-5 business days. We may contact you for additional information if required.
             </p>
             <ul className="text-slate-400 text-xs space-y-1">
-              <li>• All information provided must be accurate and up-to-date</li>
-              <li>• Documents must be clear and readable PDF files</li>
-              <li>• Approval is subject to verification of all submitted documents</li>
-              <li>• Partnership terms will be provided upon approval</li>
+              <li>� All information provided must be accurate and up-to-date</li>
+              <li>� Documents must be clear and readable PDF files</li>
+              <li>� Approval is subject to verification of all submitted documents</li>
+              <li>� Partnership terms will be provided upon approval</li>
             </ul>
           </div>
         </div>

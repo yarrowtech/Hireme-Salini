@@ -229,7 +229,7 @@ export default function Navbar({ forceHidden = false }: { forceHidden?: boolean 
 
       {showLogin && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 backdrop-blur-md animate-fadeIn"
           onClick={() => setShowLogin(false)}
         >
           <div

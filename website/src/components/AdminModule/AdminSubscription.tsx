@@ -458,15 +458,15 @@ export default function AdminSubscription() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-400/20 grid place-items-center text-cyan-200">
+            <div className="w-11 h-11 rounded-2xl bg-sky-100 border border-sky-200 grid place-items-center text-sky-700">
               <FaCrown />
             </div>
             <div>
-              <div className="text-xl font-extrabold text-white">Subscription</div>
-              <div className="text-xs text-slate-400 mt-1">
+              <div className="text-xl font-extrabold text-slate-900">Subscription</div>
+              <div className="text-xs text-slate-500 mt-1">
                 {loading ? "Loading…" : "Backend connected"}{" "}
                 {loading ? "" : `• Approved: ${kpi.totalApproved} • Active: ${kpi.active}`}
               </div>
@@ -489,8 +489,8 @@ export default function AdminSubscription() {
               className={cn(
                 "px-4 py-2 rounded-2xl text-sm font-extrabold transition border",
                 activeTab === t
-                  ? "border-cyan-400/30 bg-gradient-to-r from-cyan-500/25 via-blue-500/15 to-indigo-500/20 text-white shadow-lg"
-                  : "border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                  ? "border-sky-300 bg-gradient-to-r from-cyan-500/25 via-blue-500/15 to-indigo-500/20 text-slate-900 shadow-lg"
+                  : "border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
               )}
             >
               {t}
@@ -501,65 +501,65 @@ export default function AdminSubscription() {
 
       {/* VIEW MODAL */}
       {viewOpen && (
-        <div className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm grid place-items-center p-4">
-          <div className="w-full max-w-3xl rounded-3xl border border-white/10 bg-slate-950/70 p-5">
+        <div className="fixed inset-0 z-[999] bg-slate-900/45 backdrop-blur-sm grid place-items-center p-4">
+          <div className="w-full max-w-3xl rounded-3xl border border-slate-200 bg-slate-500 p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="text-white font-extrabold text-lg">Partner Details</div>
-                <div className="text-xs text-slate-400 mt-1">Company + subscription + expiry</div>
+                <div className="text-slate-900 font-extrabold text-lg">Partner Details</div>
+                <div className="text-xs text-slate-500 mt-1">Company + subscription + expiry</div>
               </div>
               <button
                 onClick={() => setViewOpen(false)}
-                className="px-3 py-2 rounded-2xl border border-white/10 bg-white/5 text-slate-200 hover:bg-white/10"
+                className="px-3 py-2 rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-50"
               >
                 Close
               </button>
             </div>
 
-            <div className="mt-4 rounded-2xl border border-white/10 bg-black/30 p-4">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4">
               {viewLoading ? (
-                <div className="text-slate-300">Loading…</div>
+                <div className="text-slate-600">Loading…</div>
               ) : (
                 <>
-                  <div className="text-white font-extrabold text-xl">{getCompanyName(viewRow)}</div>
-                  <div className="text-xs text-slate-400 mt-1">
-                    Email: <span className="text-slate-200">{getCompanyEmail(viewRow)}</span>
+                  <div className="text-slate-900 font-extrabold text-xl">{getCompanyName(viewRow)}</div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    Email: <span className="text-slate-700">{getCompanyEmail(viewRow)}</span>
                   </div>
 
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <div className="text-xs text-slate-400">Subscription</div>
-                      <div className="text-white font-extrabold mt-1">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-xs text-slate-500">Subscription</div>
+                      <div className="text-slate-900 font-extrabold mt-1">
                         {getPlanName(viewRow) || "No Plan"}
                       </div>
-                      <div className="text-xs text-slate-400 mt-2">
+                      <div className="text-xs text-slate-500 mt-2">
                         Amount:{" "}
-                        <span className="text-cyan-200 font-extrabold">
+                        <span className="text-sky-700 font-extrabold">
                           ₹{getPlanAmount(viewRow)}
                         </span>
                       </div>
-                      <div className="text-xs text-slate-400 mt-2">
-                        Cycle: <span className="text-slate-200">{getBillingCycle(viewRow)}</span>
+                      <div className="text-xs text-slate-500 mt-2">
+                        Cycle: <span className="text-slate-700">{getBillingCycle(viewRow)}</span>
                       </div>
                     </div>
 
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                      <div className="text-xs text-slate-400">Validity</div>
-                      <div className="text-xs text-slate-400 mt-2">
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="text-xs text-slate-500">Validity</div>
+                      <div className="text-xs text-slate-500 mt-2">
                         Start:{" "}
-                        <span className="text-slate-200">{resolveStartDate(viewRow) || "-"}</span>
+                        <span className="text-slate-700">{resolveStartDate(viewRow) || "-"}</span>
                       </div>
-                      <div className="text-xs text-slate-400 mt-2">
+                      <div className="text-xs text-slate-500 mt-2">
                         End:{" "}
-                        <span className="text-slate-200">{resolveEndDate(viewRow) || "-"}</span>
+                        <span className="text-slate-700">{resolveEndDate(viewRow) || "-"}</span>
                       </div>
                       <div className="mt-3">
                         <span
                           className={cn(
                             "px-3 py-1 rounded-full text-xs font-extrabold border",
                             statusBadge(resolveEndDate(viewRow), getPlanName(viewRow)) === "Active"
-                              ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
-                              : "border-rose-400/30 bg-rose-500/15 text-rose-200"
+                              ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
+                              : "border-rose-400/30 bg-rose-500/15 text-rose-700"
                           )}
                         >
                           {statusBadge(resolveEndDate(viewRow), getPlanName(viewRow))}
@@ -576,22 +576,22 @@ export default function AdminSubscription() {
 
       {/* Subscribers */}
       {activeTab === "Subscribers" && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/30 px-3 py-2 w-fit">
-              <FaSearch className="text-slate-300" />
+            <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3 py-2 w-fit">
+              <FaSearch className="text-slate-600" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search partner (company/email)"
-                className="bg-transparent outline-none text-sm text-white placeholder:text-slate-500 w-[240px]"
+                className="bg-transparent outline-none text-sm text-slate-900 placeholder:text-slate-500 w-[240px]"
               />
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-2xl border border-white/10 bg-black/30">
+          <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
             <table className="min-w-full text-sm">
-              <thead className="bg-white/5 text-slate-300">
+              <thead className="bg-slate-50 text-slate-600">
                 <tr>
                   <th className="px-5 py-3 text-left">Partner</th>
                   <th className="px-5 py-3 text-left">Plan</th>
@@ -615,37 +615,37 @@ export default function AdminSubscription() {
                   const st = statusBadge(endISO, plan);
 
                   return (
-                    <tr key={id} className="hover:bg-white/5">
+                    <tr key={id} className="hover:bg-slate-50">
                       <td className="px-5 py-3">
-                        <div className="text-white font-semibold">{CompanyName}</div>
+                        <div className="text-slate-900 font-semibold">{CompanyName}</div>
                         <div className="text-xs text-slate-500">{companyEmail}</div>
                       </td>
 
-                      <td className="px-5 py-3 text-slate-200">
+                      <td className="px-5 py-3 text-slate-700">
                         {plan ? (
                           <>
                             {plan} •{" "}
-                            <span className="text-cyan-200 font-extrabold">
+                            <span className="text-sky-700 font-extrabold">
                               ₹{getPlanAmount(r)}
                             </span>
                           </>
                         ) : (
-                          <span className="text-slate-400">No Plan</span>
+                          <span className="text-slate-500">No Plan</span>
                         )}
                       </td>
 
-                      <td className="px-5 py-3 text-slate-300">{startISO || "-"}</td>
-                      <td className="px-5 py-3 text-slate-300">{endISO || "-"}</td>
+                      <td className="px-5 py-3 text-slate-600">{startISO || "-"}</td>
+                      <td className="px-5 py-3 text-slate-600">{endISO || "-"}</td>
 
                       <td className="px-5 py-3">
                         <span
                           className={cn(
                             "px-3 py-1 rounded-full text-xs font-extrabold border",
                             st === "Active"
-                              ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-200"
+                              ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-700"
                               : st === "Expired"
-                              ? "border-rose-400/30 bg-rose-500/15 text-rose-200"
-                              : "border-white/10 bg-white/5 text-slate-300"
+                              ? "border-rose-400/30 bg-rose-500/15 text-rose-700"
+                              : "border-slate-200 bg-slate-50 text-slate-600"
                           )}
                         >
                           {st}
@@ -656,14 +656,14 @@ export default function AdminSubscription() {
                         <div className="inline-flex gap-2">
                           <button
                             onClick={() => openView(id)}
-                            className="px-4 py-2 rounded-2xl border border-white/10 bg-white/5 text-slate-200 font-extrabold hover:bg-white/10"
+                            className="px-4 py-2 rounded-2xl border border-slate-200 bg-slate-50 text-slate-700 font-extrabold hover:bg-slate-50"
                           >
                             <FaEye className="inline mr-2" />
                             View
                           </button>
                           <button
                             onClick={() => openUpgrade(id)}
-                            className="px-4 py-2 rounded-2xl border border-cyan-400/25 bg-cyan-500/15 text-cyan-100 font-extrabold hover:bg-cyan-500/20"
+                            className="px-4 py-2 rounded-2xl border border-sky-300 bg-sky-100 text-sky-700 font-extrabold hover:bg-sky-100"
                           >
                             Upgrade
                           </button>
@@ -675,7 +675,7 @@ export default function AdminSubscription() {
 
                 {filteredSubscribers.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-5 py-8 text-center text-slate-400">
+                    <td colSpan={6} className="px-5 py-8 text-center text-slate-500">
                       No subscribers found
                     </td>
                   </tr>
@@ -688,9 +688,9 @@ export default function AdminSubscription() {
 
       {/* Requests (Pending) */}
       {activeTab === "Requests" && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-3">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 space-y-3">
           {pendingRows.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-slate-300">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-600">
               No pending requests
             </div>
           ) : (
@@ -706,15 +706,15 @@ export default function AdminSubscription() {
               return (
                 <div
                   key={id}
-                  className="rounded-2xl border border-white/10 bg-black/30 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                  className="rounded-2xl border border-slate-200 bg-white p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
                 >
                   <div>
-                    <div className="text-white font-extrabold">{CompanyName}</div>
+                    <div className="text-slate-900 font-extrabold">{CompanyName}</div>
                     <div className="text-xs text-slate-500">{companyEmail}</div>
 
-                    <div className="mt-2 text-xs text-slate-400">
+                    <div className="mt-2 text-xs text-slate-500">
                       Selected Plan:{" "}
-                      <span className="text-cyan-200 font-extrabold">
+                      <span className="text-sky-700 font-extrabold">
                         {plan || "Not selected"} {amt ? `• ₹${amt}` : ""}
                       </span>
                     </div>
@@ -723,13 +723,13 @@ export default function AdminSubscription() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => onApprove(id)}
-                      className="px-4 py-2 rounded-2xl border border-emerald-400/25 bg-emerald-500/15 text-emerald-200 font-extrabold"
+                      className="px-4 py-2 rounded-2xl border border-emerald-400/25 bg-emerald-500/15 text-emerald-700 font-extrabold"
                     >
                       <FaCheck className="inline mr-2" /> Approve
                     </button>
                     <button
                       onClick={() => onReject(id)}
-                      className="px-4 py-2 rounded-2xl border border-rose-400/25 bg-rose-500/15 text-rose-200 font-extrabold"
+                      className="px-4 py-2 rounded-2xl border border-rose-400/25 bg-rose-500/15 text-rose-700 font-extrabold"
                     >
                       <FaTimes className="inline mr-2" /> Reject
                     </button>
@@ -743,9 +743,9 @@ export default function AdminSubscription() {
 
       {/* History */}
       {activeTab === "History" && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4">
           {allRows.length === 0 ? (
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4 text-slate-300">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-600">
               No history yet
             </div>
           ) : (
@@ -759,16 +759,16 @@ export default function AdminSubscription() {
 
                 const badge =
                   st === "APPROVED"
-                    ? "border-emerald-400/25 bg-emerald-500/15 text-emerald-200"
+                    ? "border-emerald-400/25 bg-emerald-500/15 text-emerald-700"
                     : st === "REJECTED"
-                    ? "border-rose-400/25 bg-rose-500/15 text-rose-200"
-                    : "border-amber-400/25 bg-amber-500/15 text-amber-200";
+                    ? "border-rose-400/25 bg-rose-500/15 text-rose-700"
+                    : "border-amber-400/25 bg-amber-500/15 text-amber-700";
 
                 return (
-                  <div key={id} className="rounded-2xl border border-white/10 bg-black/30 p-4">
+                  <div key={id} className="rounded-2xl border border-slate-200 bg-white p-4">
                     <div className="flex items-center justify-between gap-3">
                       <div>
-                        <div className="text-white font-extrabold">{CompanyName}</div>
+                        <div className="text-slate-900 font-extrabold">{CompanyName}</div>
                         <div className="text-xs text-slate-500">{companyEmail}</div>
                       </div>
                       <span className={cn("px-3 py-1 rounded-full text-xs font-extrabold border", badge)}>
@@ -788,36 +788,36 @@ export default function AdminSubscription() {
 
       {/* Payments */}
       {activeTab === "Payments" && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-4 space-y-4">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 space-y-4">
           <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <div className="text-white font-extrabold mb-3">Paid</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-slate-900 font-extrabold mb-3">Paid</div>
               {paymentsView.paid.length === 0 ? (
-                <div className="text-slate-400 text-sm">No paid payments</div>
+                <div className="text-slate-500 text-sm">No paid payments</div>
               ) : (
                 <div className="space-y-3">
                   {paymentsView.paid.map((p) => (
                     <div
                       key={p.id}
-                      className="rounded-2xl border border-white/10 bg-white/5 p-4 flex items-center justify-between"
+                      className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex items-center justify-between"
                     >
                       <div>
-                        <div className="text-white font-extrabold">{p.company}</div>
+                        <div className="text-slate-900 font-extrabold">{p.company}</div>
                         <div className="text-xs text-slate-500">
                           {p.plan} • {p.cycle} • Start: {p.date || "-"}
                         </div>
                       </div>
-                      <div className="text-cyan-200 font-extrabold">₹{p.amount}</div>
+                      <div className="text-sky-700 font-extrabold">₹{p.amount}</div>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-              <div className="text-white font-extrabold mb-3">Due</div>
+            <div className="rounded-2xl border border-slate-200 bg-white p-4">
+              <div className="text-slate-900 font-extrabold mb-3">Due</div>
               {paymentsView.due.length === 0 ? (
-                <div className="text-slate-400 text-sm">No pending dues</div>
+                <div className="text-slate-500 text-sm">No pending dues</div>
               ) : (
                 <div className="space-y-3">
                   {paymentsView.due.map((p) => (
@@ -826,14 +826,14 @@ export default function AdminSubscription() {
                       className="rounded-2xl border border-amber-400/20 bg-amber-500/10 p-4 flex items-center justify-between"
                     >
                       <div>
-                        <div className="text-white font-extrabold">{p.company}</div>
-                        <div className="text-xs text-slate-200/80">
+                        <div className="text-slate-900 font-extrabold">{p.company}</div>
+                        <div className="text-xs text-slate-700/80">
                           {p.plan} • {p.cycle}
                         </div>
                       </div>
                       <button
                         onClick={() => openUpgrade(p.id)}
-                        className="px-4 py-2 rounded-2xl border border-cyan-400/25 bg-cyan-500/15 text-cyan-100 font-extrabold hover:bg-cyan-500/20"
+                        className="px-4 py-2 rounded-2xl border border-sky-300 bg-sky-100 text-sky-700 font-extrabold hover:bg-sky-100"
                       >
                         Set Plan
                       </button>
@@ -848,19 +848,19 @@ export default function AdminSubscription() {
 
       {/* Upgrade Plan */}
       {activeTab === "Upgrade Plan" && (
-        <div className="rounded-3xl border border-white/10 bg-white/5 p-6 space-y-5">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 space-y-5">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <div className="text-white font-extrabold text-lg">Choose a Plan</div>
-              <div className="text-xs text-slate-400 mt-1">Pick a plan and billing cycle.</div>
+              <div className="text-slate-900 font-extrabold text-lg">Choose a Plan</div>
+              <div className="text-xs text-slate-500 mt-1">Pick a plan and billing cycle.</div>
             </div>
 
-            <div className="inline-flex rounded-2xl border border-white/10 bg-black/30 p-1">
+            <div className="inline-flex rounded-2xl border border-slate-200 bg-white p-1">
               <button
                 onClick={() => setCycle("MONTHLY")}
                 className={cn(
                   "px-4 py-2 rounded-2xl text-xs font-extrabold transition",
-                  cycle === "MONTHLY" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
+                  cycle === "MONTHLY" ? "bg-slate-50 text-slate-900" : "text-slate-600 hover:bg-slate-50"
                 )}
               >
                 Monthly
@@ -869,7 +869,7 @@ export default function AdminSubscription() {
                 onClick={() => setCycle("YEARLY")}
                 className={cn(
                   "px-4 py-2 rounded-2xl text-xs font-extrabold transition",
-                  cycle === "YEARLY" ? "bg-white/10 text-white" : "text-slate-300 hover:bg-white/5"
+                  cycle === "YEARLY" ? "bg-slate-50 text-slate-900" : "text-slate-600 hover:bg-slate-50"
                 )}
               >
                 Yearly
@@ -878,21 +878,21 @@ export default function AdminSubscription() {
           </div>
 
           {upgradeTarget ? (
-            <div className="rounded-3xl border border-white/10 bg-black/30 p-4">
-              <div className="text-xs text-slate-400">Partner</div>
-              <div className="text-white font-extrabold text-lg">{getCompanyName(upgradeTarget)}</div>
-              <div className="text-xs text-slate-400 mt-1">
+            <div className="rounded-3xl border border-slate-200 bg-white p-4">
+              <div className="text-xs text-slate-500">Partner</div>
+              <div className="text-slate-900 font-extrabold text-lg">{getCompanyName(upgradeTarget)}</div>
+              <div className="text-xs text-slate-500 mt-1">
                 Current:{" "}
-                <span className="text-cyan-200 font-extrabold">
+                <span className="text-sky-700 font-extrabold">
                   {getPlanName(upgradeTarget) || "No Plan"} ₹{getPlanAmount(upgradeTarget) || 0}
                 </span>{" "}
                 • {resolveStartDate(upgradeTarget) || "-"} → {resolveEndDate(upgradeTarget) || "-"}
               </div>
             </div>
           ) : (
-            <div className="rounded-3xl border border-white/10 bg-black/30 p-4 text-slate-300">
-              Open upgrade from <span className="text-white font-bold">Subscribers</span> → click{" "}
-              <span className="text-cyan-200 font-bold">Upgrade</span>.
+            <div className="rounded-3xl border border-slate-200 bg-white p-4 text-slate-600">
+              Open upgrade from <span className="text-slate-900 font-bold">Subscribers</span> → click{" "}
+              <span className="text-sky-700 font-bold">Upgrade</span>.
             </div>
           )}
 
@@ -907,35 +907,35 @@ export default function AdminSubscription() {
                 <div
                   key={p.key}
                   className={cn(
-                    "rounded-3xl border bg-black/30 p-5 transition",
+                    "rounded-3xl border bg-white p-5 transition",
                     isSelected
-                      ? "border-cyan-400/40 shadow-[0_0_0_1px_rgba(34,211,238,0.25),0_18px_40px_rgba(34,211,238,0.12)]"
-                      : "border-white/10 hover:border-white/20"
+                      ? "border-sky-300 shadow-[0_0_0_1px_rgba(34,211,238,0.25),0_18px_40px_rgba(34,211,238,0.12)]"
+                      : "border-slate-200 hover:border-slate-200"
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="text-white font-extrabold">{p.name}</div>
-                      <div className="text-xs text-slate-400">{p.tagline}</div>
+                      <div className="text-slate-900 font-extrabold">{p.name}</div>
+                      <div className="text-xs text-slate-500">{p.tagline}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-white font-extrabold text-lg">₹{price.toLocaleString()}</div>
-                      <div className="text-xs text-slate-400">{suffix}</div>
+                      <div className="text-slate-900 font-extrabold text-lg">₹{price.toLocaleString()}</div>
+                      <div className="text-xs text-slate-500">{suffix}</div>
                     </div>
                   </div>
 
                   <div className="mt-4 grid grid-cols-2 gap-3">
                     {p.badges.map((b, idx) => (
-                      <div key={idx} className="rounded-2xl border border-white/10 bg-white/5 px-3 py-3">
-                        <div className="text-[10px] text-slate-400 font-bold">{b.label}</div>
-                        <div className="text-xs text-white font-extrabold mt-1">{b.value}</div>
+                      <div key={idx} className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-3">
+                        <div className="text-[10px] text-slate-500 font-bold">{b.label}</div>
+                        <div className="text-xs text-slate-900 font-extrabold mt-1">{b.value}</div>
                       </div>
                     ))}
                   </div>
 
                   <div className="mt-4 space-y-2">
                     {p.points.map((t, idx) => (
-                      <div key={idx} className="flex items-start gap-2 text-sm text-slate-200">
+                      <div key={idx} className="flex items-start gap-2 text-sm text-slate-700">
                         <span className="mt-[3px] inline-block w-4 h-4 rounded-full bg-emerald-500/15 border border-emerald-400/25" />
                         <span className="text-[13px]">{t}</span>
                       </div>
@@ -948,10 +948,10 @@ export default function AdminSubscription() {
                     className={cn(
                       "mt-5 w-full px-4 py-3 rounded-2xl border font-extrabold transition",
                       !upgradeTarget
-                        ? "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
+                        ? "border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
                         : isSelected
-                        ? "border-cyan-400/30 bg-gradient-to-r from-cyan-500/35 via-blue-500/20 to-indigo-500/25 text-white"
-                        : "border-white/10 bg-white/5 text-white hover:bg-white/10"
+                        ? "border-sky-300 bg-gradient-to-r from-cyan-500/35 via-blue-500/20 to-indigo-500/25 text-slate-900"
+                        : "border-slate-200 bg-slate-50 text-slate-900 hover:bg-slate-50"
                     )}
                   >
                     {isSelected ? "Selected" : "Select Plan"}
@@ -962,7 +962,7 @@ export default function AdminSubscription() {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-            <div className="text-xs text-slate-400">Your selected plan will be attached to this partner.</div>
+            <div className="text-xs text-slate-500">Your selected plan will be attached to this partner.</div>
 
             <button
               onClick={submitUpgrade}
@@ -970,8 +970,8 @@ export default function AdminSubscription() {
               className={cn(
                 "px-5 py-3 rounded-2xl border font-extrabold transition",
                 upgradeTarget && selectedPlan
-                  ? "border-cyan-400/25 bg-gradient-to-r from-cyan-500/25 via-blue-500/15 to-indigo-500/20 text-white"
-                  : "border-white/10 bg-white/5 text-slate-500 cursor-not-allowed"
+                  ? "border-sky-300 bg-gradient-to-r from-cyan-500/25 via-blue-500/15 to-indigo-500/20 text-slate-900"
+                  : "border-slate-200 bg-slate-50 text-slate-500 cursor-not-allowed"
               )}
             >
               <FaArrowUp className="inline mr-2" />
@@ -987,12 +987,12 @@ export default function AdminSubscription() {
 /* -------------------- UI Parts -------------------- */
 function Kpi({ icon, label, value }: { icon: React.ReactNode; label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 min-w-[110px]">
-      <div className="text-[11px] text-slate-400 flex items-center gap-2">
-        <span className="text-cyan-200">{icon}</span>
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 min-w-[110px]">
+      <div className="text-[11px] text-slate-500 flex items-center gap-2">
+        <span className="text-sky-700">{icon}</span>
         <span>{label}</span>
       </div>
-      <div className="text-lg font-extrabold text-white mt-1 leading-tight">{value}</div>
+      <div className="text-lg font-extrabold text-slate-900 mt-1 leading-tight">{value}</div>
     </div>
   );
 }

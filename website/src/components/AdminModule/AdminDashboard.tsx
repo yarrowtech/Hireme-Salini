@@ -216,16 +216,16 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-6">
+      <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-2 text-white">
-            <FaChartLine className="text-cyan-300" />
+          <div className="flex items-center gap-2 text-slate-900">
+            <FaChartLine className="text-sky-600" />
             <h2 className="text-xl font-extrabold">Admin Dashboard</h2>
 
-            <span className="ml-2 text-xs text-slate-400">({datasetYear})</span>
+            <span className="ml-2 text-xs text-slate-500">({datasetYear})</span>
 
             {loading && (
-              <span className="ml-2 inline-flex items-center gap-2 text-xs text-slate-400">
+              <span className="ml-2 inline-flex items-center gap-2 text-xs text-slate-500">
                 <FaSpinner className="animate-spin" /> Loading…
               </span>
             )}
@@ -315,7 +315,7 @@ export default function AdminDashboard() {
         <Card
           title="Partner Payments (₹) Monthly Jan–Dec"
           rightBadge={
-            <span className="text-[11px] font-extrabold px-3 py-1.5 rounded-full border border-cyan-400/30 bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-indigo-500/20 text-white">
+            <span className="text-[11px] font-extrabold px-3 py-1.5 rounded-full border border-sky-300 bg-gradient-to-r from-cyan-500/20 via-blue-500/15 to-indigo-500/20 text-slate-900">
               Revenue View
             </span>
           }
@@ -358,13 +358,13 @@ export default function AdminDashboard() {
               title="Active Partners"
               value={`${kpi.activePartners}`}
               tag="Live"
-              tagClass="border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
+              tagClass="border-emerald-400/20 bg-emerald-500/10 text-emerald-700"
             />
             <MiniKpi
               title="Pending Requests"
               value={`${kpi.pendingRequests}`}
               tag="Action"
-              tagClass="border-amber-400/20 bg-amber-500/10 text-amber-200"
+              tagClass="border-amber-400/20 bg-amber-500/10 text-amber-700"
             />
             <MiniKpi
               title="Subscriptions"
@@ -376,11 +376,11 @@ export default function AdminDashboard() {
               title="Payments Total"
               value={`₹ ${kpi.totalPayments.toLocaleString()}`}
               tag="Revenue"
-              tagClass="border-cyan-400/20 bg-cyan-500/10 text-cyan-200"
+              tagClass="border-sky-200 bg-sky-50 text-sky-700"
             />
           </div>
 
-          <div className="mt-5 rounded-2xl border border-white/10 bg-black/30 p-4" />
+          <div className="mt-5 rounded-2xl border border-slate-200 bg-white p-4" />
         </Card>
       </div>
     </div>
@@ -403,15 +403,15 @@ function Stat({
   return (
     <div
       className={cn(
-        "rounded-2xl border border-white/10 bg-black/30 px-4 py-3 min-w-[120px]",
+        "rounded-2xl border border-slate-200 bg-white px-4 py-3 min-w-[120px]",
         wide && "min-w-[170px]"
       )}
     >
-      <div className="flex items-center gap-2 text-[11px] text-slate-400">
-        <span className="text-cyan-300">{icon}</span>
+      <div className="flex items-center gap-2 text-[11px] text-slate-500">
+        <span className="text-sky-600">{icon}</span>
         <span className="truncate">{label}</span>
       </div>
-      <div className="text-lg font-extrabold text-white leading-tight mt-1">{value}</div>
+      <div className="text-lg font-extrabold text-slate-900 leading-tight mt-1">{value}</div>
     </div>
   );
 }
@@ -430,14 +430,14 @@ function Card({
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="rounded-3xl border border-white/10 bg-white/5 p-6"
+      className="rounded-3xl border border-slate-200 bg-slate-50 p-6"
     >
       <div className="flex items-center justify-between gap-3 mb-4">
-        <div className="text-white font-extrabold">{title}</div>
+        <div className="text-slate-900 font-extrabold">{title}</div>
         {rightBadge}
       </div>
 
-      <div className="rounded-2xl border border-white/10 bg-black/30 p-4">{children}</div>
+      <div className="rounded-2xl border border-slate-200 bg-white p-4">{children}</div>
     </motion.div>
   );
 }
@@ -454,9 +454,9 @@ function MiniKpi({
   tagClass: string;
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/30 p-4">
-      <div className="text-xs text-slate-400">{title}</div>
-      <div className="text-lg font-extrabold text-white mt-1">{value}</div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4">
+      <div className="text-xs text-slate-500">{title}</div>
+      <div className="text-lg font-extrabold text-slate-900 mt-1">{value}</div>
       <div
         className={cn(
           "mt-2 inline-flex items-center px-3 py-1.5 rounded-full text-[11px] font-extrabold border",

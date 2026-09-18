@@ -228,7 +228,7 @@ export function SubscriptionPlanContainer() {
           <h3 className="text-xl font-bold text-blue-800 mb-2">Premium Plan</h3>
           <p className="text-blue-600 mb-4">Active until December 31, 2023</p>
           <div className="flex justify-center gap-4">
-            <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors shadow-md">
+            <button className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-slate-900 font-medium rounded-lg transition-colors shadow-md">
               Upgrade Plan
             </button>
             <button className="px-6 py-2 bg-white border border-blue-300 hover:bg-blue-50 text-blue-700 font-medium rounded-lg transition-colors shadow-md">
@@ -431,7 +431,7 @@ export function SideBar({
     <>
       {/* Mobile menu button */}
       <button 
-        className="md:hidden fixed bottom-6 right-6 z-20 bg-blue-600 text-white p-4 rounded-full shadow-xl"
+        className="md:hidden fixed bottom-6 right-6 z-20 bg-blue-600 text-slate-900 p-4 rounded-full shadow-xl"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
       >
         <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
@@ -512,11 +512,11 @@ function NavButton({ icon, label, active, onClick }: { icon: string; label: stri
       className={`flex items-center gap-3 px-4 py-3 rounded-xl w-full text-base font-medium transition-all duration-200 ease-linear cursor-pointer focus:outline-none ${
         active
           ? "bg-white text-blue-800 shadow-md"
-          : "text-white hover:bg-blue-500/50 hover:shadow-md"
+          : "text-slate-900 hover:bg-blue-500/50 hover:shadow-md"
       }`}
       onClick={onClick}
     >
-      <i className={`fas fa-${icon} ${active ? 'text-blue-600' : 'text-white'} text-lg w-6 text-center`}></i>
+      <i className={`fas fa-${icon} ${active ? 'text-blue-600' : 'text-slate-900'} text-lg w-6 text-center`}></i>
       <span>{label}</span>
     </button>
   );

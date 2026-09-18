@@ -107,7 +107,7 @@ export default function AdminSidebar({
       >
         <div
           className={cn(
-            "absolute inset-0 bg-black/60 transition-opacity",
+            "absolute inset-0 bg-slate-900/35 transition-opacity",
             sidebarOpen ? "opacity-100" : "opacity-0"
           )}
           onClick={() => setSidebarOpen(false)}
@@ -115,25 +115,25 @@ export default function AdminSidebar({
 
         <div
           className={cn(
-            "absolute left-0 top-0 h-full w-[86%] max-w-[320px] bg-slate-950 border-r border-white/10 shadow-2xl transition-transform",
+            "absolute left-0 top-0 h-full w-[86%] max-w-[320px] bg-white border-r border-slate-200 shadow-2xl transition-transform",
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           )}
         >
           {/* Header */}
-          <div className="p-4 flex items-center justify-between border-b border-white/10">
+          <div className="p-4 flex items-center justify-between border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-slate-900">
                 <FaUserShield />
               </div>
               <div className="leading-tight">
-                <div className="text-white font-bold">{panelTitle}</div>
-                <div className="text-xs text-slate-400">Admin Workspace</div>
+                <div className="text-slate-900 font-bold">{panelTitle}</div>
+                <div className="text-xs text-slate-500">Admin Workspace</div>
               </div>
             </div>
 
             <button
               onClick={() => setSidebarOpen(false)}
-              className="px-3 py-2 rounded-xl bg-white/10 border border-white/10 text-white"
+              className="px-3 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900"
               aria-label="Close sidebar"
             >
               <FaTimes />
@@ -151,24 +151,24 @@ export default function AdminSidebar({
       </div>
 
       {/* ================= Desktop Sidebar ================= */}
-      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 bg-slate-950 border-r border-white/10">
+      <aside className="hidden lg:flex fixed left-0 top-0 h-screen w-72 bg-white border-r border-slate-200">
         <div className="w-full flex flex-col">
           {/* Header */}
-          <div className="p-5 border-b border-white/10">
+          <div className="p-5 border-b border-slate-200">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-white">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-slate-900">
                 <FaUserShield />
               </div>
               <div className="leading-tight">
-                <div className="text-white font-extrabold text-lg">{panelTitle}</div>
-                <div className="text-xs text-slate-400">Admin Workspace</div>
+                <div className="text-slate-900 font-extrabold text-lg">{panelTitle}</div>
+                <div className="text-xs text-slate-500">Admin Workspace</div>
               </div>
             </div>
 
-            <div className="mt-4 rounded-2xl bg-white/5 border border-white/10 p-3">
-              <div className="text-xs text-slate-400">Status</div>
-              <div className="text-sm text-white font-semibold">Active Admin</div>
-              <div className="text-xs text-slate-400 mt-1">Access: Users </div>
+            <div className="mt-4 rounded-2xl bg-slate-50 border border-slate-200 p-3">
+              <div className="text-xs text-slate-500">Status</div>
+              <div className="text-sm text-slate-900 font-semibold">Active Admin</div>
+              <div className="text-xs text-slate-500 mt-1">Access: Users </div>
             </div>
           </div>
 
@@ -198,7 +198,7 @@ function SidebarNav({
 }) {
   return (
     <nav className="p-4">
-      <div className="text-xs uppercase tracking-wider text-slate-400 px-3 mb-3">
+      <div className="text-xs uppercase tracking-wider text-slate-500 px-3 mb-3">
         Navigation
       </div>
 
@@ -212,11 +212,11 @@ function SidebarNav({
               className={cn(
                 "w-full flex items-center gap-3 px-4 py-3 rounded-2xl border transition",
                 isActive
-                  ? "bg-gradient-to-r from-cyan-500/25 to-blue-500/10 border-cyan-400/30 text-white"
-                  : "bg-white/5 border-white/10 text-slate-200 hover:bg-white/10"
+                  ? "bg-gradient-to-r from-cyan-500/25 to-blue-500/10 border-sky-300 text-slate-900"
+                  : "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-50"
               )}
             >
-              <span className="text-cyan-300">{it.icon}</span>
+              <span className="text-sky-600">{it.icon}</span>
               <span className="font-semibold">{it.label}</span>
             </button>
           );
@@ -236,11 +236,11 @@ function SidebarFooterPill({
   onLogout: () => void;
 }) {
   return (
-    <div className="p-4 border-t border-white/10">
-      <div className="flex items-center gap-3 rounded-full bg-gradient-to-r from-white/10 to-white/5 border border-white/10 px-4 py-3">
+    <div className="p-4 border-t border-slate-200">
+      <div className="flex items-center gap-3 rounded-full bg-gradient-to-r from-white/10 to-white/5 border border-slate-200 px-4 py-3">
         <div className="min-w-0 flex-1">
-          <div className="text-[11px] text-slate-400">Profile</div>
-          <div className="text-sm font-semibold text-white truncate">{adminName}</div>
+          <div className="text-[11px] text-slate-500">Profile</div>
+          <div className="text-sm font-semibold text-slate-900 truncate">{adminName}</div>
           <div className="text-xs text-slate-500 truncate">{adminEmail || ""}</div>
         </div>
 

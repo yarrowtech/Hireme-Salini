@@ -74,7 +74,7 @@ function ForgotPasswordModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/35 backdrop-blur-md">
       <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl shadow-2xl p-8 w-[90vw] max-w-md relative border border-blue-200/50 backdrop-blur-sm">
         <button
           onClick={onClose}
@@ -206,7 +206,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
   const isCompany = role === "COMPANY";
 
   const icon = useMemo(() => {
-    if (role === "EMPLOYEE") return <FaUser className="text-lg text-white" />;
+    if (role === "EMPLOYEE") return <FaUser className="text-lg text-slate-900" />;
     return <FaBriefcase className="text-lg text-white" />;
   }, [role]);
 
@@ -298,6 +298,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
         }
 
         localStorage.setItem("authToken", data.token);
+        localStorage.removeItem("authSessionExpired");
         localStorage.setItem("authRole", "COMPANY");
         if (data?.user) {
           localStorage.setItem("authUser", JSON.stringify(data.user));
@@ -343,6 +344,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
       }
 
       localStorage.setItem("authToken", data.token);
+      localStorage.removeItem("authSessionExpired");
       localStorage.setItem("authRole", String(data?.user?.role || role));
       if (data?.user) localStorage.setItem("authUser", JSON.stringify(data.user));
       if (data?.user?.companyId) {
@@ -391,7 +393,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
               "rounded-2xl px-3 py-3 font-extrabold text-xs sm:text-sm transition border",
               role === "EMPLOYEE"
                 ? "bg-white/90 border-blue-300 text-blue-800 shadow"
-                : "bg-white/50 border-blue-200 text-blue-700 hover:bg-white/70",
+                : "bg-white/60 border-blue-200 text-blue-700 hover:bg-white",
             ].join(" ")}
           >
             Employee
@@ -403,7 +405,7 @@ export default function Login({ setShowLogin }: { setShowLogin: (value: boolean)
               "rounded-2xl px-3 py-3 font-extrabold text-xs sm:text-sm transition border",
               role === "COMPANY"
                 ? "bg-white/90 border-blue-300 text-blue-800 shadow"
-                : "bg-white/50 border-blue-200 text-blue-700 hover:bg-white/70",
+                : "bg-white/60 border-blue-200 text-blue-700 hover:bg-white",
             ].join(" ")}
           >
             Company

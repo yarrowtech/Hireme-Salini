@@ -233,11 +233,11 @@ function Pill({
   tone?: "success" | "warning" | "info" | "inactive" | "danger";
 }) {
   const map = {
-    success: "bg-green-500/15 border-green-500/30 text-green-200",
-    warning: "bg-amber-500/15 border-amber-500/30 text-amber-200",
-    info: "bg-cyan-500/15 border-cyan-500/30 text-cyan-200",
-    inactive: "bg-slate-500/15 border-slate-500/30 text-slate-300",
-    danger: "bg-rose-500/15 border-rose-500/30 text-rose-200",
+    success: "bg-emerald-50 border-emerald-200 text-emerald-700",
+    warning: "bg-amber-50 border-amber-200 text-amber-700",
+    info: "bg-sky-50 border-sky-200 text-sky-700",
+    inactive: "bg-slate-100 border-slate-200 text-slate-600",
+    danger: "bg-rose-50 border-rose-200 text-rose-700",
   } as const;
 
   return (
@@ -268,26 +268,26 @@ function StatCard({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative w-full text-left overflow-hidden rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl transition",
-        onClick && "hover:bg-white/10 hover:border-cyan-500/30 hover:-translate-y-[1px] active:translate-y-0"
+        "relative w-full text-left overflow-hidden rounded-2xl border border-blue-100 bg-white p-6 shadow-sm shadow-blue-900/5 transition",
+        onClick && "hover:shadow-md hover:shadow-blue-900/10 hover:border-blue-300 hover:-translate-y-[1px] active:translate-y-0"
       )}
     >
-      <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br from-cyan-500/20 via-blue-500/10 to-purple-500/20 blur-2xl" />
+      <div className="absolute -top-16 -right-16 h-40 w-40 rounded-full bg-gradient-to-br from-blue-200/40 via-sky-100/40 to-blue-100/30 blur-2xl" />
       <div className="relative">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div className="text-sm text-slate-300">{title}</div>
-            <div className="mt-2 text-3xl font-extrabold text-white">{value}</div>
+            <div className="text-sm text-slate-500">{title}</div>
+            <div className="mt-2 text-3xl font-extrabold text-slate-950">{value}</div>
 
             {(delta || deltaLabel) && (
-              <div className="mt-3 flex items-center gap-2 text-xs text-slate-300">
+              <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
                 {delta && (
                   <span
                     className={cn(
                       "inline-flex items-center gap-1 rounded-full border px-2 py-1",
                       delta.dir === "up"
-                        ? "border-green-500/30 bg-green-500/15 text-green-200"
-                        : "border-red-500/30 bg-red-500/15 text-red-200"
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                        : "border-rose-200 bg-rose-50 text-rose-700"
                     )}
                   >
                     {delta.dir === "up" ? <FaArrowUp /> : <FaArrowDown />}
@@ -299,12 +299,12 @@ function StatCard({
             )}
           </div>
 
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md shadow-blue-500/20">
             {icon}
           </div>
         </div>
 
-        {onClick && <div className="mt-4 text-xs text-cyan-200/80 font-semibold">Click to open →</div>}
+        {onClick && <div className="mt-4 text-xs text-blue-700 font-semibold">Click to open →</div>}
       </div>
     </button>
   );
@@ -320,9 +320,9 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="relative rounded-3xl border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+    <div className="relative rounded-2xl border border-blue-100 bg-white p-6 shadow-sm shadow-blue-900/5">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <div className="text-lg font-bold text-white">{title}</div>
+        <div className="text-lg font-bold text-slate-950">{title}</div>
         {right && <div className="shrink-0 pointer-events-none select-none">{right}</div>}
       </div>
       <div className="relative z-10">{children}</div>
@@ -340,11 +340,11 @@ function InfoRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-      <span className="text-slate-300 inline-flex items-center gap-2">
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-blue-100 bg-blue-50/50 px-4 py-3">
+      <span className="text-slate-500 inline-flex items-center gap-2">
         {icon} {label}
       </span>
-      <span className="font-semibold text-white text-right">{value}</span>
+      <span className="font-semibold text-slate-900 text-right">{value}</span>
     </div>
   );
 }
@@ -364,7 +364,7 @@ export default function CompanyDashboardOneCompany() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.pathname]);
 
-  // ✅ FIX: accept multiple possible param names
+  // ? FIX: accept multiple possible param names
   const params = useParams();
   const requestId =
     (params as any)?.requestId ||
@@ -377,7 +377,7 @@ export default function CompanyDashboardOneCompany() {
 
   const [company, setCompany] = useState<Company>({
     id: "",
-    name: "Loading…",
+    name: "Loading�",
     industry: "-",
     location: "-",
     email: "-",
@@ -569,7 +569,7 @@ export default function CompanyDashboardOneCompany() {
       setEmployeesData(employees.map(normalizeEmployeeRecord));
       setAttendanceMap({});
     } catch (e: any) {
-      console.error("❌ Company dashboard load error:", e);
+      console.error("? Company dashboard load error:", e);
 
       const msg =
         e?.response?.data?.message ||
@@ -583,12 +583,12 @@ export default function CompanyDashboardOneCompany() {
     }
   }, [requestId]);
 
-  /** ✅ Fetch ONLY company from backend */
+  /** ? Fetch ONLY company from backend */
   useEffect(() => {
     refreshCompanyBundle();
   }, [refreshCompanyBundle]);
 
-  /** ✅ Docs URL helper */
+  /** ? Docs URL helper */
   const docUrl = useCallback(
     (docKey: string) => {
       if (!company?.id) return "#";
@@ -656,13 +656,13 @@ export default function CompanyDashboardOneCompany() {
       {(loading || loadError) && (
         <div
           className={cn(
-            "rounded-3xl border p-4",
-            loadError ? "border-rose-500/30 bg-rose-500/10 text-rose-200" : "border-white/10 bg-white/5 text-slate-200"
+            "rounded-2xl border p-4",
+            loadError ? "border-rose-200 bg-rose-50 text-rose-700" : "border-blue-100 bg-white text-slate-600 shadow-sm shadow-blue-900/5"
           )}
         >
           {loading ? "Loading company data from backend…" : loadError}
           {!loading && loadError && (
-            <div className="mt-2 text-xs text-slate-200/80">
+            <div className="mt-2 text-xs text-slate-500">
               Debug tips: Open DevTools → Console and Network, check what URL is being called and the status code.
             </div>
           )}
@@ -670,23 +670,23 @@ export default function CompanyDashboardOneCompany() {
       )}
 
       {/* TOP COMPANY */}
-      <div className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-white/10 p-8 backdrop-blur-xl">
-        <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute -bottom-28 -right-28 h-72 w-72 rounded-full bg-purple-500/20 blur-3xl" />
+      <div className="relative overflow-hidden rounded-3xl border border-blue-100 bg-gradient-to-br from-white via-sky-50/60 to-blue-50/60 p-8 shadow-sm shadow-blue-900/5">
+        <div className="absolute -top-24 -left-24 h-64 w-64 rounded-full bg-blue-200/25 blur-3xl" />
+        <div className="absolute -bottom-28 -right-28 h-72 w-72 rounded-full bg-sky-200/25 blur-3xl" />
 
         <div className="relative">
           <div className="flex flex-col gap-5">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-4">
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400/30 to-blue-500/20 border border-white/10 text-white">
+                <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-md shadow-blue-500/20">
                   <FaBuilding className="text-2xl" />
                 </div>
 
                 <div>
-                  <div className="text-3xl font-extrabold text-white">{company.name}</div>
-                  <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-300">
+                  <div className="text-3xl font-extrabold text-slate-950">{company.name}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-3 text-sm text-slate-600">
                     <span>{company.industry}</span>
-                    <span>•</span>
+                    <span>·</span>
                     <span className="inline-flex items-center gap-2">
                       <FaMapMarkerAlt /> {company.location}
                     </span>
@@ -696,7 +696,7 @@ export default function CompanyDashboardOneCompany() {
 
               <button
                 onClick={() => navigate("/company/service")}
-                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 px-5 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
+                className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-blue-500 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:from-blue-400 hover:to-blue-600 transition"
               >
                 <FaShieldAlt />
                 Manage Employees
@@ -706,11 +706,11 @@ export default function CompanyDashboardOneCompany() {
 
             {/* DETAILS */}
             <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5 xl:col-span-2">
+              <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm shadow-blue-900/5 xl:col-span-2">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-white font-bold">Company Details</div>
-                    <div className="text-xs text-slate-400 mt-1">Loaded directly from the backend company bundle.</div>
+                    <div className="text-slate-950 font-bold">Company Details</div>
+                    <div className="text-xs text-slate-500 mt-1">Loaded directly from the backend company bundle.</div>
                   </div>
                   <Pill label={company.status.toUpperCase()} tone={company.status === "active" ? "success" : company.status === "pending" ? "warning" : "inactive"} />
                 </div>
@@ -724,8 +724,8 @@ export default function CompanyDashboardOneCompany() {
                   <InfoRow icon={<FaShieldAlt />} label="PAN" value={company.pan || "-"} />
                 </div>
 
-                <div className="mt-4 rounded-2xl border border-white/10 bg-slate-950/30 p-4">
-                  <div className="text-sm font-semibold text-white mb-3">Documents</div>
+                <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50/50 p-4">
+                  <div className="text-sm font-semibold text-slate-950 mb-3">Documents</div>
                   {company.documents?.length ? (
                     <div className="flex flex-wrap gap-2">
                       {company.documents.map((d) => (
@@ -734,7 +734,7 @@ export default function CompanyDashboardOneCompany() {
                           href={docUrl(d.key)}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-xs text-slate-200 hover:bg-white/10"
+                          className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-white px-3 py-2 text-xs text-slate-700 hover:bg-blue-100 transition"
                         >
                           <FaFilePdf />
                           {d.key}
@@ -742,16 +742,16 @@ export default function CompanyDashboardOneCompany() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-xs text-slate-400">No documents available</div>
+                    <div className="text-xs text-slate-500">No documents available</div>
                   )}
                 </div>
               </div>
 
-              <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
+              <div className="rounded-2xl border border-blue-100 bg-white p-5 shadow-sm shadow-blue-900/5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <div className="text-white font-bold">Subscription Status</div>
-                    <div className="text-xs text-slate-400 mt-1">Live subscription details from the backend.</div>
+                    <div className="text-slate-950 font-bold">Subscription Status</div>
+                    <div className="text-xs text-slate-500 mt-1">Live subscription details from the backend.</div>
                   </div>
                   <Pill label={effectiveSubscriptionActive ? "ACTIVE" : "INACTIVE"} tone={effectiveSubscriptionActive ? "success" : "danger"} />
                 </div>
@@ -768,7 +768,7 @@ export default function CompanyDashboardOneCompany() {
                 <div className="mt-4 flex flex-wrap gap-3">
                   <button
                     onClick={() => navigate("/company/service")}
-                    className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
+                    className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-800 hover:bg-blue-100 transition"
                   >
                     Manage Employees
                     <FaChevronRight />
@@ -776,7 +776,7 @@ export default function CompanyDashboardOneCompany() {
 
                   <button
                     onClick={() => navigate("/company/subscription")}
-                    className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 py-3 text-sm font-semibold text-white hover:opacity-95 transition"
+                    className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-500 to-blue-700 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-blue-500/20 hover:from-blue-400 hover:to-blue-600 transition"
                   >
                     View Subscription
                     <FaChevronRight />
@@ -795,11 +795,11 @@ export default function CompanyDashboardOneCompany() {
           title="Employee Attendance"
           value={`${attendanceSummary.pct}%`}
           icon={<FaChartLine className="text-xl" />}
-          deltaLabel={`${attendanceSummary.present} Present • ${attendanceSummary.absent} Absent • ${attendanceSummary.leave} Leave`}
+          deltaLabel={`${attendanceSummary.present} Present � ${attendanceSummary.absent} Absent � ${attendanceSummary.leave} Leave`}
         />
         <StatCard
           title="Company Payroll (Departments)"
-          value={`₹${fmtINR(totals.payroll)}`}
+          value={`?${fmtINR(totals.payroll)}`}
           icon={<FaCheckCircle className="text-xl" />}
           delta={{ dir: "up", value: "Auto" }}
           deltaLabel="Calculated from analytics"
@@ -810,32 +810,32 @@ export default function CompanyDashboardOneCompany() {
       {/* GRAPHS */}
       <Panel title="Analytics Graphs + Summary">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <div className="text-white font-bold mb-4">Department Attendance %</div>
+          <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-5">
+            <div className="text-slate-950 font-bold mb-4">Department Attendance %</div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={departmentAttendanceChart}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="department" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="attendance" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.1)" />
+                  <XAxis dataKey="department" tick={{ fill: "#475569", fontSize: 12 }} stroke="rgba(15,23,42,0.15)" />
+                  <YAxis tick={{ fill: "#475569", fontSize: 12 }} stroke="rgba(15,23,42,0.15)" />
+                  <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#bfdbfe", fontSize: 12 }} />
+                  <Bar dataKey="attendance" fill="#2563eb" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
           </div>
 
-          <div className="rounded-3xl border border-white/10 bg-white/5 p-5">
-            <div className="text-white font-bold mb-4">Employee Attendance %</div>
+          <div className="rounded-xl border border-blue-100 bg-blue-50/40 p-5">
+            <div className="text-slate-950 font-bold mb-4">Employee Attendance %</div>
             <div className="h-[280px]">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={employeeAttendanceChart}>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(15,23,42,0.1)" />
+                  <XAxis dataKey="name" tick={{ fill: "#475569", fontSize: 12 }} stroke="rgba(15,23,42,0.15)" />
+                  <YAxis tick={{ fill: "#475569", fontSize: 12 }} stroke="rgba(15,23,42,0.15)" />
+                  <Tooltip contentStyle={{ borderRadius: 12, borderColor: "#bfdbfe", fontSize: 12 }} />
                   <Legend />
-                  <Line type="monotone" dataKey="attendance" strokeWidth={2} dot />
+                  <Line type="monotone" dataKey="attendance" stroke="#2563eb" strokeWidth={2} dot />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -848,16 +848,16 @@ export default function CompanyDashboardOneCompany() {
   /** EMPLOYEE PAGE */
   const EmployeePage = () => (
     <div className="space-y-6">
-      <div className="rounded-[2.25rem] border border-white/10 bg-white/5 p-6 backdrop-blur-xl">
+      <div className="rounded-3xl border border-blue-100 bg-white p-6 shadow-sm shadow-blue-900/5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="text-2xl font-extrabold text-white">Employee List</div>
-            <div className="text-sm text-slate-300">All employees under {company.name} (with attendance)</div>
+            <div className="text-2xl font-extrabold text-slate-950">Employee List</div>
+            <div className="text-sm text-slate-600">All employees under {company.name} (with attendance)</div>
           </div>
 
           <button
             onClick={openDashboard}
-            className="rounded-2xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-slate-200 hover:bg-white/10 transition"
+            className="rounded-xl border border-blue-200 bg-blue-50 px-5 py-3 text-sm font-semibold text-blue-800 hover:bg-blue-100 transition"
           >
             Back Dashboard
           </button>
@@ -865,11 +865,11 @@ export default function CompanyDashboardOneCompany() {
       </div>
 
       <Panel title="Employees Full Details + Attendance">
-        <div className="rounded-3xl border border-white/10 bg-white/5 overflow-hidden">
+        <div className="rounded-xl border border-blue-100 overflow-hidden">
           <div data-scrollbox="true" className="max-h-[650px] overflow-auto">
             <table className="min-w-full w-full text-sm">
-              <thead className="sticky top-0 z-10 bg-slate-950/70 backdrop-blur text-slate-200">
-                <tr className="border-b border-white/10">
+              <thead className="sticky top-0 z-10 bg-blue-50 text-slate-600">
+                <tr className="border-b border-blue-100">
                   <th className="text-left px-4 py-3">Employee</th>
                   <th className="text-left px-4 py-3">Department</th>
                   <th className="text-left px-4 py-3">Role</th>
@@ -885,21 +885,21 @@ export default function CompanyDashboardOneCompany() {
                 </tr>
               </thead>
 
-              <tbody className="text-white">
+              <tbody className="text-slate-900">
                 {employeesData.map((emp) => {
                   const a = attendanceOf(emp.employeeId);
                   const pct = attendancePct(a);
 
                   return (
-                    <tr key={emp.id} className="border-t border-white/10 hover:bg-white/5">
+                    <tr key={emp.id} className="border-t border-blue-100 hover:bg-blue-50/60">
                       <td className="px-4 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
                             <FaUsers />
                           </div>
                           <div>
                             <div className="font-semibold">{emp.name}</div>
-                            <div className="text-xs text-slate-400">{emp.employeeId}</div>
+                            <div className="text-xs text-slate-500">{emp.employeeId}</div>
                           </div>
                         </div>
                       </td>
@@ -907,9 +907,9 @@ export default function CompanyDashboardOneCompany() {
                       <td className="px-4 py-4">{emp.department}</td>
                       <td className="px-4 py-4 font-semibold">{emp.role}</td>
                       <td className="px-4 py-4">₹{fmtINR(emp.salary)}</td>
-                      <td className="px-4 py-4 text-slate-200">{emp.email}</td>
-                      <td className="px-4 py-4 text-slate-200">{emp.phone}</td>
-                      <td className="px-4 py-4 text-slate-300">{emp.joinDate}</td>
+                      <td className="px-4 py-4 text-slate-600">{emp.email}</td>
+                      <td className="px-4 py-4 text-slate-600">{emp.phone}</td>
+                      <td className="px-4 py-4 text-slate-500">{emp.joinDate}</td>
 
                       <td className="px-4 py-4">
                         <Pill
@@ -919,22 +919,22 @@ export default function CompanyDashboardOneCompany() {
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs">
-                          <FaCheckCircle className="text-green-200" />
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                          <FaCheckCircle className="text-emerald-600" />
                           {a.present}
                         </span>
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs">
-                          <FaExclamationTriangle className="text-amber-200" />
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                          <FaExclamationTriangle className="text-amber-600" />
                           {a.absent}
                         </span>
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs">
-                          <FaBed className="text-cyan-200" />
+                        <span className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-700">
+                          <FaBed className="text-sky-600" />
                           {a.leave}
                         </span>
                       </td>
@@ -948,7 +948,7 @@ export default function CompanyDashboardOneCompany() {
               </tbody>
             </table>
 
-            {!employeesData.length && <div className="py-10 text-center text-slate-300">No employees found.</div>}
+            {!employeesData.length && <div className="py-10 text-center text-slate-500">No employees found.</div>}
           </div>
         </div>
       </Panel>
@@ -1102,7 +1102,7 @@ export default function CompanyDashboardOneCompany() {
                         <div className="mt-1 text-xs text-slate-400">
                           {h.hasLogin ? "Password set" : "Login not configured"}
                           {(h.loginUpdatedAt || h.passwordUpdatedAt)
-                            ? ` • Updated ${new Date(String(h.loginUpdatedAt || h.passwordUpdatedAt)).toLocaleDateString()}`
+                            ? ` � Updated ${new Date(String(h.loginUpdatedAt || h.passwordUpdatedAt)).toLocaleDateString()}`
                             : ""}
                         </div>
                       </td>

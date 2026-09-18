@@ -94,7 +94,7 @@ function SideBar({
         className={`px-6 py-3 rounded-2xl w-full text-lg font-semibold transition-all duration-300 ease-linear focus:outline-none focus:ring-2 focus:ring-blue-400 ${
           employeeDetailsType === "details"
             ? "bg-white text-blue-900 shadow-lg"
-            : "text-white hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
+            : "text-slate-900 hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
         }`}
         onClick={() => setEmployeeDetailsType("details")}
       >
@@ -104,7 +104,7 @@ function SideBar({
         className={`px-6 py-3 rounded-2xl w-full text-lg font-semibold transition-all duration-300 ease-linear focus:outline-none focus:ring-2 focus:ring-blue-400 ${
           employeeDetailsType === "education"
             ? "bg-white text-blue-900 shadow-lg"
-            : "text-white hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
+            : "text-slate-900 hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
         }`}
         onClick={() => setEmployeeDetailsType("education")}
       >
@@ -114,7 +114,7 @@ function SideBar({
         className={`px-6 py-3 rounded-2xl w-full text-lg font-semibold transition-all duration-300 ease-linear focus:outline-none focus:ring-2 focus:ring-blue-400 ${
           employeeDetailsType === "bank"
             ? "bg-white text-blue-900 shadow-lg"
-            : "text-white hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
+            : "text-slate-900 hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
         }`}
         onClick={() => setEmployeeDetailsType("bank")}
       >
@@ -124,7 +124,7 @@ function SideBar({
         className={`px-6 py-3 rounded-2xl w-full text-lg font-semibold transition-all duration-300 ease-linear focus:outline-none focus:ring-2 focus:ring-blue-400 ${
           employeeDetailsType === "job"
             ? "bg-white text-blue-900 shadow-lg"
-            : "text-white hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
+            : "text-slate-900 hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
         }`}
         onClick={() => setEmployeeDetailsType("job")}
       >
@@ -134,7 +134,7 @@ function SideBar({
         className={`px-6 py-3 rounded-2xl w-full text-lg font-semibold transition-all duration-300 ease-linear focus:outline-none focus:ring-2 focus:ring-blue-400 ${
           employeeDetailsType === "attendance"
             ? "bg-white text-blue-900 shadow-lg"
-            : "text-white hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
+            : "text-slate-900 hover:bg-blue-300 hover:text-blue-900 hover:scale-105 hover:shadow-lg"
         }`}
         onClick={() => setEmployeeDetailsType("attendance")}
       >
@@ -546,7 +546,7 @@ function Attendance() {
         <button
           onClick={() => markAttendance(true)}
           disabled={loading}
-          className={`px-6 py-3 rounded-xl bg-green-600 text-white font-semibold 
+          className={`px-6 py-3 rounded-xl bg-green-600 text-slate-900 font-semibold 
                         transition-all duration-300 hover:bg-green-700 focus:outline-none focus:ring-2 
                         focus:ring-green-400 disabled:bg-green-300 disabled:cursor-not-allowed
                         flex items-center gap-2`}
@@ -554,7 +554,7 @@ function Attendance() {
           {loading ? (
             <>
               <svg
-                className="animate-spin h-5 w-5 text-white"
+                className="animate-spin h-5 w-5 text-slate-900"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"
@@ -598,7 +598,7 @@ function Attendance() {
         <button
           onClick={() => markAttendance(false)}
           disabled={loading}
-          className={`px-6 py-3 rounded-xl bg-red-600 text-white font-semibold 
+          className={`px-6 py-3 rounded-xl bg-red-600 text-slate-900 font-semibold 
                         transition-all duration-300 hover:bg-red-700 focus:outline-none focus:ring-2 
                         focus:ring-red-400 disabled:bg-red-300 disabled:cursor-not-allowed
                         flex items-center gap-2`}
@@ -606,7 +606,7 @@ function Attendance() {
           {loading ? (
             <>
               <svg
-                className="animate-spin h-5 w-5 text-white"
+                className="animate-spin h-5 w-5 text-slate-900"
                 xmlns="http://www.w3.org/2000/svg"
                 fill="none"
                 viewBox="0 0 24 24"

@@ -146,13 +146,13 @@ export default function Footer() {
 
             {/* Contact Information Section */}
             <div className="w-full max-w-6xl mb-12">
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10">
+                <div className="bg-slate-50 backdrop-blur-sm rounded-2xl p-8 border border-slate-200">
                     <h3 className="text-2xl font-bold text-blue-100 mb-6 text-center flex items-center justify-center gap-3">
                         <FaEnvelope className="text-blue-300" />
                         Get In Touch
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-300">
+                        <div className="flex flex-col items-center text-center p-4 bg-slate-50 rounded-xl hover:bg-slate-50 transition-all duration-300">
                             <div className="w-12 h-12 bg-blue-400/20 rounded-full flex items-center justify-center mb-3">
                                 <FaMapMarkerAlt className="text-blue-300 text-xl" />
                             </div>
@@ -162,7 +162,7 @@ export default function Footer() {
                             <p className="text-sm text-blue-200">West Bengal, India</p>
                         </div>
 
-                        <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-300">
+                        <div className="flex flex-col items-center text-center p-4 bg-slate-50 rounded-xl hover:bg-slate-50 transition-all duration-300">
                             <div className="w-12 h-12 bg-blue-400/20 rounded-full flex items-center justify-center mb-3">
                                 <FaPhoneAlt className="text-blue-300 text-xl" />
                             </div>
@@ -175,7 +175,7 @@ export default function Footer() {
                             </div>
                         </div>
 
-                        <div className="flex flex-col items-center text-center p-4 bg-white/5 rounded-xl hover:bg-white/10 transition-all duration-300">
+                        <div className="flex flex-col items-center text-center p-4 bg-slate-50 rounded-xl hover:bg-slate-50 transition-all duration-300">
                             <div className="w-12 h-12 bg-blue-400/20 rounded-full flex items-center justify-center mb-3">
                                 <FaEnvelope className="text-blue-300 text-xl" />
                             </div>
@@ -191,13 +191,13 @@ export default function Footer() {
             {/* Newsletter Section */}
             <div className="w-full max-w-6xl mb-12">
                 <div className="bg-gradient-to-r from-blue-800/50 to-blue-600/50 backdrop-blur-sm rounded-2xl p-8 border border-blue-400/20 text-center">
-                    <h3 className="text-2xl font-bold text-white mb-3">Stay Updated</h3>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3">Stay Updated</h3>
                     <p className="text-blue-200 mb-6">Subscribe to our newsletter for the latest workforce technology insights and platform updates</p>
                     <div className="flex flex-col sm:flex-row gap-4 max-w-md mx-auto">
                         <input
                             type="email"
                             placeholder="Enter your email address"
-                            className="flex-1 px-4 py-3 rounded-xl bg-white/10 border border-white/20 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
+                            className="flex-1 px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 backdrop-blur-sm"
                         />
                         <button className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-105 shadow-lg">
                             Subscribe
@@ -207,7 +207,7 @@ export default function Footer() {
             </div>
 
             {/* Bottom section */}
-            <div className="w-full max-w-6xl border-t border-white/20 pt-8">
+            <div className="w-full max-w-6xl border-t border-slate-200 pt-8">
                 <div className="flex flex-col lg:flex-row justify-between items-center gap-6">
                     {/* Copyright and Legal */}
                     <div className="text-center lg:text-left">
@@ -225,42 +225,42 @@ export default function Footer() {
                         <div className="flex gap-4">
                             <a 
                                 href="#" 
-                                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-600 transition-all duration-300 hover:scale-110"
+                                className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-blue-200 hover:text-slate-900 hover:bg-blue-600 transition-all duration-300 hover:scale-110"
                                 aria-label="Facebook"
                             >
                                 <FaFacebook className="text-lg" />
                             </a>
                             <a 
                                 href="#" 
-                                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-500 transition-all duration-300 hover:scale-110"
+                                className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-blue-200 hover:text-slate-900 hover:bg-blue-500 transition-all duration-300 hover:scale-110"
                                 aria-label="Twitter"
                             >
                                 <FaTwitter className="text-lg" />
                             </a>
                             <a 
                                 href="#" 
-                                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-blue-700 transition-all duration-300 hover:scale-110"
+                                className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-blue-200 hover:text-slate-900 hover:bg-blue-700 transition-all duration-300 hover:scale-110"
                                 aria-label="LinkedIn"
                             >
                                 <FaLinkedin className="text-lg" />
                             </a>
                             <a 
                                 href="#" 
-                                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 transition-all duration-300 hover:scale-110"
+                                className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-blue-200 hover:text-slate-900 hover:bg-gradient-to-r hover:from-purple-500 hover:to-pink-500 transition-all duration-300 hover:scale-110"
                                 aria-label="Instagram"
                             >
                                 <FaInstagram className="text-lg" />
                             </a>
                             <a 
                                 href="#" 
-                                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-red-600 transition-all duration-300 hover:scale-110"
+                                className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-blue-200 hover:text-slate-900 hover:bg-red-600 transition-all duration-300 hover:scale-110"
                                 aria-label="YouTube"
                             >
                                 <FaYoutube className="text-lg" />
                             </a>
                             <a 
                                 href="#" 
-                                className="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-blue-200 hover:text-white hover:bg-gray-800 transition-all duration-300 hover:scale-110"
+                                className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center text-blue-200 hover:text-slate-900 hover:bg-gray-800 transition-all duration-300 hover:scale-110"
                                 aria-label="GitHub"
                             >
                                 <FaGithub className="text-lg" />
